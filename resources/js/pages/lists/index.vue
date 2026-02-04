@@ -120,7 +120,7 @@ const deleteList = (listId: number) => {
         <div>
           <h1 class="text-3xl font-bold">Lists</h1>
           <p class="text-muted-foreground">
-            Manage your lists and their associated files.
+            Manage your lists and their associated folder.
           </p>
         </div>
 
@@ -188,7 +188,7 @@ const deleteList = (listId: number) => {
           <CardContent>
             <p class="text-sm text-muted-foreground mb-4">
               {{ list.files_count || 0 }}
-              {{ list.files_count === 1 ? 'file' : 'files' }}
+              {{ list.files_count === 1 ? 'folder' : 'folders' }}
             </p>
 
             <div class="flex gap-2">

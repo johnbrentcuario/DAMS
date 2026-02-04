@@ -29,7 +29,7 @@ const mainNavItems: NavItem[] = [
         icon: List,
     },
     {
-        title: 'Files',
+        title: 'Folder',
         href: '/files',
         icon: Folder,
     },

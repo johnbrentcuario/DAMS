@@ -164,7 +164,7 @@ const updateFile = () => {
 }
 
 const deleteFile = (id: number) => {
-  if (!confirm('Are you sure?')) return
+  if (!confirm('Delete this folder?')) return
 
   deletingFileId.value = id
   router.delete(`/files/${id}`, {
@@ -196,15 +196,15 @@ const getPriorityVariant = (priority: string): 'default' | 'secondary' | 'destru
 </script>
 
 <template>
-  <Head title="All Files" />
+  <Head title="All Folder" />
 
   <AppLayout>
     <div class="p-6 space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold">All Files</h1>
-          <p class="text-muted-foreground">{{ files.total }} total files</p>
+          <h1 class="text-3xl font-bold">All folder</h1>
+          <p class="text-muted-foreground">{{ files.total }} total folder</p>
         </div>
 
         <!-- Create Dialog -->
@@ -212,14 +212,14 @@ const getPriorityVariant = (priority: string): 'default' | 'secondary' | 'destru
           <DialogTrigger as-child>
             <Button>
               <Plus class="h-4 w-4 mr-2" />
-              Add File
+              Add folder
             </Button>
           </DialogTrigger>
 
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add File</DialogTitle>
-              <DialogDescription>Create a new file</DialogDescription>
+              <DialogTitle>Add folder</DialogTitle>
+              <DialogDescription>Create a new folder</DialogDescription>
             </DialogHeader>
 
             <form @submit.prevent="createFile" class="space-y-4">
