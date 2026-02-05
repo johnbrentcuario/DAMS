@@ -68,6 +68,7 @@ class FileController extends Controller
             'description' => ['nullable', 'string'],
             'priority' => ['nullable', 'string', 'max:16'],
             'completed' => ['nullable', 'boolean'],
+            'list_id' => 'required|exists:lists,id',
         ]);
 
         $validated['completed'] = (bool) ($validated['completed'] ?? $file->completed);

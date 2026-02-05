@@ -106,6 +106,14 @@ const clearFilters = () => {
   search.value = ''
   priority.value = ''
   listId.value = ''
+router.get(
+    '/files',
+    {},
+    {
+      preserveState: true,
+      preserveScroll: true,
+    }
+  )
 }
 
 /* =======================
@@ -129,7 +137,8 @@ const createForm = useForm({
 const editForm = useForm({
   fullname: '',
   description: '',
-  priority: 'normal'
+  priority: 'normal',
+  list_id: '' as number | ''
 })
 
 /* =======================
@@ -145,12 +154,16 @@ const createFile = () => {
 }
 
 const openEditDialog = (file: File) => {
-  editingFile.value = file
+  editingFile.value = { ...file } // prevent live mutation
+
   editForm.fullname = file.fullname
   editForm.description = file.description || ''
   editForm.priority = file.priority
+  editForm.list_id = file.list_id // ✅ from files table
+
   isEditDialogOpen.value = true
 }
+
 
 const updateFile = () => {
   if (!editingFile.value) return
@@ -280,6 +293,13 @@ const getPriorityVariant = (priority: string): 'default' | 'secondary' | 'destru
             <option value="normal">Normal</option>
             <option value="high">High</option>
           </select>
+
+        <div class="md:col-span-3 flex justify-end">
+                <Button variant="secondary" @click="clearFilters">
+                Clear Filters
+                </Button>
+        </div>
+
         </CardContent>
       </Card>
 
@@ -369,6 +389,22 @@ const getPriorityVariant = (priority: string): 'default' | 'secondary' | 'destru
               <Input v-model="editForm.fullname" required />
               <InputError :message="editForm.errors.fullname" />
             </div>
+
+            <div>
+  <Label>List</Label>
+  <select v-model="editForm.list_id" class="w-full border rounded px-3 py-2" required>
+    <option value="">Select list</option>
+    <option
+      v-for="list in lists"
+      :key="list.id"
+      :value="list.id"
+    >
+      {{ list.name }}
+    </option>
+  </select>
+  <InputError :message="editForm.errors.list_id" />
+</div>
+
 
             <div>
               <Label>Description</Label>
