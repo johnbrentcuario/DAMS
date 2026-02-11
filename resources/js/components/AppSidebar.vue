@@ -24,7 +24,7 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Lists',
+        title: 'Employment Types',
         href: '/lists',
         icon: List,
     },

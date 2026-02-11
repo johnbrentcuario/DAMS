@@ -27,7 +27,7 @@ import { ref } from 'vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Dashboard', href: dashboard().url },
-  { title: 'Lists', href: '/lists' }
+  { title: 'Employment Type', href: '/lists' }
 ]
 
 const props = defineProps<{
@@ -96,7 +96,7 @@ const updateList = () => {
 }
 
 const deleteList = (listId: number) => {
-  if (!confirm('Are you sure you want to delete this list?')) return
+  if (!confirm('Are you sure you want to delete this Employment Type?')) return
 
   deletingListId.value = listId
 
@@ -110,7 +110,7 @@ const deleteList = (listId: number) => {
 </script>
 
 <template>
-  <Head title="Lists" />
+  <Head title="Employment Types" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-6 space-y-6">
@@ -118,9 +118,9 @@ const deleteList = (listId: number) => {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold">Lists</h1>
+          <h1 class="text-3xl font-bold">Employment Types</h1>
           <p class="text-muted-foreground">
-            Manage your lists and their associated folder.
+            Manage your Employment Types and their associated folder.
           </p>
         </div>
 
@@ -129,21 +129,21 @@ const deleteList = (listId: number) => {
           <DialogTrigger as-child>
             <Button>
               <Plus class="h-4 w-4 mr-2" />
-              Create New List
+              Create New Employment Type
             </Button>
           </DialogTrigger>
 
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New List</DialogTitle>
+              <DialogTitle>Create New Employment Type</DialogTitle>
               <DialogDescription>
-                Fill out the form below to create a new list.
+                Fill out the form below to create a new Employment Type.
               </DialogDescription>
             </DialogHeader>
 
             <form @submit.prevent="createList" class="space-y-4">
               <div class="space-y-2">
-                <Label>List Name</Label>
+                <Label>Employment Type</Label>
                 <Input v-model="createForm.name" required />
                 <InputError :message="createForm.errors.name" />
               </div>
@@ -156,7 +156,7 @@ const deleteList = (listId: number) => {
 
               <Button type="submit" class="w-full" :disabled="createForm.processing">
                 <Loader2 v-if="createForm.processing" class="animate-spin h-4 w-4 mr-2" />
-                {{ createForm.processing ? 'Creating...' : 'Create List' }}
+                {{ createForm.processing ? 'Creating...' : 'Create Employment Type' }}
               </Button>
             </form>
           </DialogContent>
@@ -224,7 +224,7 @@ const deleteList = (listId: number) => {
       <Card v-else>
         <CardContent class="flex flex-col items-center justify-center py-12">
           <p class="text-muted-foreground mb-4">
-            No lists found. Create a new list to get started.
+            No Employment Type found. Create a new Employment Type to get started.
           </p>
         </CardContent>
       </Card>
@@ -233,15 +233,15 @@ const deleteList = (listId: number) => {
       <Dialog v-model:open="isEditDialogOpen">
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit List</DialogTitle>
+            <DialogTitle>Edit Employment Type</DialogTitle>
             <DialogDescription>
-              Update the details of your list.
+              Update the details of your Employment Type.
             </DialogDescription>
           </DialogHeader>
 
           <form @submit.prevent="updateList" class="space-y-4">
             <div class="space-y-2">
-              <Label>List Name</Label>
+              <Label>Employment Type</Label>
               <Input v-model="editForm.name" required />
               <InputError :message="editForm.errors.name" />
             </div>
@@ -254,7 +254,7 @@ const deleteList = (listId: number) => {
 
             <Button type="submit" class="w-full" :disabled="editForm.processing">
               <Loader2 v-if="editForm.processing" class="animate-spin h-4 w-4 mr-2" />
-              {{ editForm.processing ? 'Updating...' : 'Update List' }}
+              {{ editForm.processing ? 'Updating...' : 'Update Employment Type' }}
             </Button>
           </form>
         </DialogContent>
