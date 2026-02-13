@@ -11,7 +11,7 @@ class ListController extends Controller
     public function index(): Response
     {
         $lists = FileList::query()
-            ->select(['id', 'name', 'color', 'created_at'])
+            ->select(['id', 'name', 'color', 'requirements', 'created_at'])
             ->withCount('files')
             ->latest()
             ->get();
@@ -25,7 +25,8 @@ class ListController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:32'], 
+            'color' => ['nullable', 'string', 'max:32'],
+            'requirements' => 'nullable|array',
         ]);
 
         $list = FileList::create($validated);
@@ -37,7 +38,8 @@ class ListController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:32'], 
+            'color' => ['nullable', 'string', 'max:32'],
+            'requirements' => 'nullable|array',
         ]);
 
         $list->update($validated);

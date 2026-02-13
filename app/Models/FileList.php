@@ -14,10 +14,15 @@ class FileList extends Model
     protected $fillable = [
         'name',
         'color',
+        'requirements'
     ];
 
     public function files(): HasMany
     {
         return $this->hasMany(File::class, 'list_id');
     }
+
+    protected $casts = [
+    'requirements' => 'array', // <--- Ensure this is here
+];
 }

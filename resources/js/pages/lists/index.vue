@@ -21,7 +21,9 @@ import {
   Pencil,
   Trash2,
   ExternalLink,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  X
 } from 'lucide-vue-next'
 import { ref } from 'vue'
 
@@ -36,39 +38,47 @@ const props = defineProps<{
     name: string
     color?: string
     files_count?: number
+    requirements?: string[] // Added requirements array
     created_at: string
   }>
 }>()
 
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
-const editingList = ref<{ id: number; name: string; color: string } | null>(null)
+const editingList = ref<any>(null)
 const deletingListId = ref<number | null>(null)
 
 /* Create Form */
 const createForm = useForm({
   name: '',
-  color: '#6366f1'
+  color: '#6366f1',
+  requirements: [] as string[] // Initialize requirements
 })
 
 /* Edit Form */
 const editForm = useForm({
   id: 0,
   name: '',
-  color: '#6366f1'
+  color: '#6366f1',
+  requirements: [] as string[] // Initialize requirements
 })
 
-const openEditDialog = (list: any) => {
-  editingList.value = {
-    id: list.id,
-    name: list.name,
-    color: list.color || '#6366f1'
-  }
+/* Helper methods for checklist */
+const addRequirement = (form: any) => {
+  form.requirements.push('')
+}
 
+const removeRequirement = (form: any, index: number) => {
+  form.requirements.splice(index, 1)
+}
+
+const openEditDialog = (list: any) => {
+  editingList.value = list
   editForm.id = list.id
   editForm.name = list.name
   editForm.color = list.color || '#6366f1'
-
+  // Clone the array to avoid direct mutation
+  editForm.requirements = list.requirements ? [...list.requirements] : []
   isEditDialogOpen.value = true
 }
 
@@ -83,28 +93,20 @@ const createList = () => {
 }
 
 const updateList = () => {
-  if (!editingList.value) return
-
-  editForm.put(`/lists/${editingList.value.id}`, {
+  editForm.put(`/lists/${editForm.id}`, {
     preserveScroll: true,
     onSuccess: () => {
       isEditDialogOpen.value = false
       editForm.reset()
-      editingList.value = null
     }
   })
 }
 
 const deleteList = (listId: number) => {
-  if (!confirm('Are you sure you want to delete this Employment Type?')) return
-
+  if (!confirm('Are you sure?')) return
   deletingListId.value = listId
-
   router.delete(`/lists/${listId}`, {
-    preserveScroll: true,
-    onFinish: () => {
-      deletingListId.value = null
-    }
+    onFinish: () => deletingListId.value = null
   })
 }
 </script>
@@ -114,152 +116,117 @@ const deleteList = (listId: number) => {
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-6 space-y-6">
-
-      <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold">Employment Types</h1>
-          <p class="text-muted-foreground">
-            Manage your Employment Types and their associated folder.
-          </p>
+          <p class="text-muted-foreground">Manage types and their required document checklists.</p>
         </div>
 
-        <!-- Create Dialog -->
         <Dialog v-model:open="isCreateDialogOpen">
           <DialogTrigger as-child>
             <Button>
               <Plus class="h-4 w-4 mr-2" />
-              Create New Employment Type
+              Create New
             </Button>
           </DialogTrigger>
-
-          <DialogContent>
+          <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Create New Employment Type</DialogTitle>
-              <DialogDescription>
-                Fill out the form below to create a new Employment Type.
-              </DialogDescription>
+              <DialogTitle>Create Employment Type</DialogTitle>
             </DialogHeader>
-
-            <form @submit.prevent="createList" class="space-y-4">
+            <form @submit.prevent="createList" class="space-y-4 mt-4">
               <div class="space-y-2">
-                <Label>Employment Type</Label>
-                <Input v-model="createForm.name" required />
-                <InputError :message="createForm.errors.name" />
+                <Label>Name</Label>
+                <Input v-model="createForm.name" placeholder="e.g. Full Time" required />
               </div>
 
               <div class="space-y-2">
-                <Label>Color</Label>
-                <Input type="color" v-model="createForm.color" />
-                <InputError :message="createForm.errors.color" />
+                <Label>File Checklist (Requirements)</Label>
+                <div v-for="(_, index) in createForm.requirements" :key="index" class="flex gap-2">
+                  <Input v-model="createForm.requirements[index]" placeholder="e.g. ID Copy" />
+                  <Button type="button" variant="ghost" size="icon" @click="removeRequirement(createForm, index)">
+                    <X class="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" size="sm" class="w-full" @click="addRequirement(createForm)">
+                  <Plus class="h-3 w-3 mr-2" /> Add Item
+                </Button>
               </div>
 
               <Button type="submit" class="w-full" :disabled="createForm.processing">
-                <Loader2 v-if="createForm.processing" class="animate-spin h-4 w-4 mr-2" />
-                {{ createForm.processing ? 'Creating...' : 'Create Employment Type' }}
+                {{ createForm.processing ? 'Creating...' : 'Save Employment Type' }}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <!-- LISTS GRID -->
-      <div v-if="lists.length > 0" class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Card
-          v-for="list in lists"
-          :key="list.id"
-          class="hover:shadow-md transition-shadow"
-        >
-          <CardHeader>
+      <div v-if="lists.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card v-for="list in lists" :key="list.id" class="flex flex-col">
+          <CardHeader class="pb-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div
-                  class="h-3 w-3 rounded-full"
-                  :style="{ backgroundColor: list.color || '#6366f1' }"
-                />
+                <div class="h-3 w-3 rounded-full" :style="{ backgroundColor: list.color || '#6366f1' }" />
                 <CardTitle class="text-lg">{{ list.name }}</CardTitle>
               </div>
-              <span class="text-2xl font-bold text-muted-foreground">
-                {{ list.files_count || 0 }}
-              </span>
             </div>
           </CardHeader>
+          <CardContent class="flex-1">
+            <div class="mb-4">
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Required Files:</p>
+              <ul v-if="list.requirements?.length" class="space-y-1">
+                <li v-for="req in list.requirements" :key="req" class="text-sm flex items-center gap-2 text-slate-600">
+                  <CheckCircle2 class="h-3.5 w-3.5 text-emerald-500" />
+                  {{ req }}
+                </li>
+              </ul>
+              <p v-else class="text-sm text-muted-foreground italic">No requirements set.</p>
+            </div>
 
-          <CardContent>
-            <p class="text-sm text-muted-foreground mb-4">
-              {{ list.files_count || 0 }}
-              {{ list.files_count === 1 ? 'folder' : 'folders' }}
-            </p>
-
-            <div class="flex gap-2">
+            <div class="flex gap-2 mt-auto pt-4 border-t">
               <Link :href="`/files?list_id=${list.id}`" class="flex-1">
-                <Button variant="outline" size="sm" class="w-full">
-                  <ExternalLink class="h-4 w-4 mr-2" />
-                  View
-                </Button>
+                <Button variant="outline" size="sm" class="w-full">View Files</Button>
               </Link>
-
               <Button variant="outline" size="sm" @click="openEditDialog(list)">
                 <Pencil class="h-4 w-4" />
               </Button>
-
-              <Button
-                variant="destructive"
-                size="sm"
-                @click="deleteList(list.id)"
-                :disabled="deletingListId === list.id"
-              >
-                <Loader2
-                  v-if="deletingListId === list.id"
-                  class="animate-spin h-4 w-4"
-                />
-                <Trash2 v-else class="h-4 w-4" />
+              <Button variant="destructive" size="sm" @click="deleteList(list.id)" :disabled="deletingListId === list.id">
+                <Trash2 class="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <!-- EMPTY STATE -->
-      <Card v-else>
-        <CardContent class="flex flex-col items-center justify-center py-12">
-          <p class="text-muted-foreground mb-4">
-            No Employment Type found. Create a new Employment Type to get started.
-          </p>
-        </CardContent>
-      </Card>
-
-      <!-- EDIT DIALOG -->
       <Dialog v-model:open="isEditDialogOpen">
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Employment Type</DialogTitle>
-            <DialogDescription>
-              Update the details of your Employment Type.
-            </DialogDescription>
+            <DialogTitle>Edit {{ editingList?.name }}</DialogTitle>
           </DialogHeader>
-
           <form @submit.prevent="updateList" class="space-y-4">
             <div class="space-y-2">
-              <Label>Employment Type</Label>
+              <Label>Name</Label>
               <Input v-model="editForm.name" required />
-              <InputError :message="editForm.errors.name" />
             </div>
 
             <div class="space-y-2">
-              <Label>Color</Label>
-              <Input type="color" v-model="editForm.color" />
-              <InputError :message="editForm.errors.color" />
+              <Label>File Checklist</Label>
+              <div v-for="(_, index) in editForm.requirements" :key="index" class="flex gap-2 mb-2">
+                <Input v-model="editForm.requirements[index]" />
+                <Button type="button" variant="ghost" size="icon" @click="removeRequirement(editForm, index)">
+                  <Trash2 class="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+              <Button type="button" variant="outline" size="sm" @click="addRequirement(editForm)">
+                <Plus class="h-4 w-4 mr-2" /> Add Requirement
+              </Button>
             </div>
 
             <Button type="submit" class="w-full" :disabled="editForm.processing">
-              <Loader2 v-if="editForm.processing" class="animate-spin h-4 w-4 mr-2" />
-              {{ editForm.processing ? 'Updating...' : 'Update Employment Type' }}
+              Update Type
             </Button>
           </form>
         </DialogContent>
       </Dialog>
-
     </div>
   </AppLayout>
 </template>

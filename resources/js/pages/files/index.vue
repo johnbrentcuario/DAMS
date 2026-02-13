@@ -337,7 +337,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
           </div>
 
           <div class="p-4 border-t flex items-center justify-between bg-muted/10">
-            <p class="text-xs text-muted-foreground">Page {{ files.total > 0 ? '1' : '0' }} of total {{ files.total }} records</p>
             <div class="flex gap-1">
               <Link
                 v-for="link in files.links"
