@@ -14,10 +14,12 @@ class File extends Model
         'fullname',
         'description',
         'priority',
-        'completed'
+        'completed',
+        'completed_requirements'
     ];
     protected $casts = [
         'completed' => 'boolean',
+        'completed_requirements' => 'array',
     ];
 
     public function list(): BelongsTo

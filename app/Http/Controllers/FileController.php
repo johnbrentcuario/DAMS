@@ -13,7 +13,10 @@ class FileController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = File::query()->with('list:id,name,color');
+        // FIX 1: Include 'requirements' from the list and select 'completed_requirements' from the file
+        $query = File::query()->with(['list' => function ($q) {
+            $q->select('id', 'name', 'color', 'requirements');
+        }]);
 
         // Search filter
         if ($request->filled('search')) {
@@ -34,7 +37,9 @@ class FileController extends Controller
         }
 
         $files = $query->latest()->paginate(10)->withQueryString();
-        $lists = FileList::select(['id', 'name', 'color'])->get();
+
+        // FIX 2: Ensure lists also carry their requirements for the Create/Edit modals
+        $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
 
         return Inertia::render('files/index', [
             'files' => $files,
@@ -51,6 +56,7 @@ class FileController extends Controller
             'priority' => ['nullable', 'string', 'max:16'],
             'completed' => ['nullable', 'boolean'],
             'list_id' => ['required', 'exists:lists,id'],
+            'completed_requirements' => ['nullable', 'array'], // FIX 3: Allow saving checklist
         ]);
 
         $validated['completed'] = (bool) ($validated['completed'] ?? false);
@@ -64,11 +70,12 @@ class FileController extends Controller
     public function update(Request $request, File $file): RedirectResponse
     {
         $validated = $request->validate([
-            'fullname' => ['required', 'string', 'max:255'], // ⚠ changed from 'name'
+            'fullname' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'priority' => ['nullable', 'string', 'max:16'],
             'completed' => ['nullable', 'boolean'],
             'list_id' => 'required|exists:lists,id',
+            'completed_requirements' => ['nullable', 'array'], // FIX 4: Allow updating checklist
         ]);
 
         $validated['completed'] = (bool) ($validated['completed'] ?? $file->completed);
