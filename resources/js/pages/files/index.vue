@@ -5,7 +5,7 @@ import { ref } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -34,16 +34,9 @@ import {
    Constants & Types
 ======================= */
 const SEPARATION_METHODS = [
-  'Resignation',
-  'Retirement',
-  'End of Contract',
-  'Termination',
-  'Retrenchment',
-  'Redundancy',
-  'Layoff',
-  'Probation Fail',
-  'Mutual Agreement',
-  'Death'
+  'Resignation', 'Retirement', 'End of Contract', 'Termination',
+  'Retrenchment', 'Redundancy', 'Layoff', 'Probation Fail',
+  'Mutual Agreement', 'Death'
 ] as const;
 
 type SeparationMethod = typeof SEPARATION_METHODS[number];
@@ -80,11 +73,7 @@ interface PaginationFiles {
 const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
-  filters: {
-    search?: string
-    priority?: string
-    list_id?: string
-  }
+  filters: { search?: string; priority?: string; list_id?: string }
 }>()
 
 /* =======================
@@ -117,15 +106,11 @@ const clearFilters = () => {
 ======================= */
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
-const editingFile = ref<File | null>(null)
-const deletingFileId = ref<number | null>(null)
 const isViewDialogOpen = ref(false)
-const viewingFile = ref<File | null>(null)
 
-const openViewDialog = (file: File) => {
-  viewingFile.value = file
-  isViewDialogOpen.value = true
-}
+const editingFile = ref<File | null>(null)
+const viewingFile = ref<File | null>(null)
+const deletingFileId = ref<number | null>(null)
 
 const createForm = useForm({
   fullname: '',
@@ -141,13 +126,9 @@ const editForm = useForm({
   list_id: '' as number | ''
 })
 
-const createFile = () => {
-  createForm.post('/files', {
-    onSuccess: () => {
-      isCreateDialogOpen.value = false
-      createForm.reset()
-    }
-  })
+const openViewDialog = (file: File) => {
+  viewingFile.value = file
+  isViewDialogOpen.value = true
 }
 
 const openEditDialog = (file: File) => {
@@ -157,6 +138,15 @@ const openEditDialog = (file: File) => {
   editForm.priority = file.priority
   editForm.list_id = file.list_id
   isEditDialogOpen.value = true
+}
+
+const createFile = () => {
+  createForm.post('/files', {
+    onSuccess: () => {
+      isCreateDialogOpen.value = false
+      createForm.reset()
+    }
+  })
 }
 
 const updateFile = () => {
@@ -195,6 +185,10 @@ const toggleRequirement = (file: File, requirement: string) => {
   }, {
     preserveScroll: true,
     onSuccess: () => {
+      // Sync local state for immediate feedback
+      if (editingFile.value && editingFile.value.id === file.id) {
+        editingFile.value.completed_requirements = currentReqs;
+      }
       if (viewingFile.value && viewingFile.value.id === file.id) {
         viewingFile.value.completed_requirements = currentReqs;
       }
@@ -219,7 +213,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold tracking-tight">All Folders</h1>
-          <p class="text-muted-foreground">{{ files.total }} Folder</p>
+          <p class="text-muted-foreground">{{ files.total }} Folders Found</p>
         </div>
 
         <Dialog v-model:open="isCreateDialogOpen">
@@ -301,7 +295,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   <th class="p-4 text-center font-semibold w-20">Status</th>
                   <th class="p-4 text-left font-semibold">Full Name</th>
                   <th class="p-4 text-left font-semibold hidden md:table-cell">Remarks</th>
-                  <th class="p-4 text-left font-semibold">Mode</th>
+                  <th class="p-5 text-left font-semibold">Mode</th>
                   <th class="p-4 text-left font-semibold">Type</th>
                   <th class="p-4 text-center font-semibold w-32">Actions</th>
                 </tr>
@@ -338,21 +332,12 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                       <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8">
                         <Edit2 class="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        class="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        @click="deleteFile(file.id)"
-                        :disabled="deletingFileId === file.id"
-                      >
+                      <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive" @click="deleteFile(file.id)" :disabled="deletingFileId === file.id">
                         <Loader2 v-if="deletingFileId === file.id" class="h-4 w-4 animate-spin" />
                         <Trash2 v-else class="h-4 w-4" />
                       </Button>
                     </div>
                   </td>
-                </tr>
-                <tr v-if="files.data.length === 0">
-                   <td colspan="6" class="p-10 text-center text-muted-foreground italic">No folders found matching your search.</td>
                 </tr>
               </tbody>
             </table>
@@ -360,48 +345,80 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
           <div class="p-4 border-t flex items-center justify-between bg-muted/5">
             <div class="flex gap-1">
-              <Link
-                v-for="link in files.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                v-html="link.label"
-                class="px-3 py-1.5 border rounded-md text-xs font-medium transition-all"
-                :class="{ 'bg-primary text-white border-primary shadow-sm': link.active, 'bg-background text-muted-foreground pointer-events-none opacity-50': !link.url }"
+              <Link v-for="link in files.links" :key="link.label" :href="link.url || '#'" v-html="link.label"
+                class="px-3 py-1.5 border rounded-md text-xs font-medium"
+                :class="{ 'bg-primary text-white border-primary shadow-sm': link.active, 'opacity-50 pointer-events-none': !link.url }"
               />
             </div>
-            <p class="text-xs text-muted-foreground">Showing {{ files.data.length }} of {{ files.total }} records</p>
+            <p class="text-xs text-muted-foreground">Showing {{ files.data.length }} records</p>
           </div>
         </CardContent>
       </Card>
 
       <Dialog v-model:open="isEditDialogOpen">
-        <DialogContent class="sm:max-w-[550px]">
-          <DialogHeader><DialogTitle>Edit Record</DialogTitle></DialogHeader>
-          <form @submit.prevent="updateFile" class="space-y-4 pt-4">
-            <div>
-              <Label>Full Name</Label>
-              <Input v-model="editForm.fullname" required />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Employment Type</Label>
-                <select v-model="editForm.list_id" :class="selectStyle" required>
-                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
-                </select>
+        <DialogContent class="sm:max-w-[600px] max-h-[95vh] flex flex-col overflow-hidden">
+          <DialogHeader><DialogTitle>Edit Record & Checklist</DialogTitle></DialogHeader>
+
+          <div class="flex-1 overflow-y-auto pr-2 py-4 scrollbar-thin">
+            <form @submit.prevent="updateFile" id="edit-form" class="space-y-4">
+              <div class="space-y-2">
+                <Label>Full Name</Label>
+                <Input v-model="editForm.fullname" required />
               </div>
-              <div>
-                <Label>Mode of Separation</Label>
-                <select v-model="editForm.priority" :class="selectStyle" required>
-                  <option v-for="method in SEPARATION_METHODS" :key="method" :value="method">{{ method }}</option>
-                </select>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <Label>Employment Type</Label>
+                  <select v-model="editForm.list_id" :class="selectStyle" required>
+                    <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <Label>Mode of Separation</Label>
+                  <select v-model="editForm.priority" :class="selectStyle" required>
+                    <option v-for="method in SEPARATION_METHODS" :key="method" :value="method">{{ method }}</option>
+                  </select>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label>Description / Remarks</Label>
-              <textarea v-model="editForm.description" :class="selectStyle" class="min-h-[100px] resize-none" />
-            </div>
-            <Button type="submit" class="w-full" :disabled="editForm.processing">Update Folder</Button>
-          </form>
+              <div class="space-y-2">
+                <Label>Description / Remarks</Label>
+                <textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" />
+              </div>
+
+              <div v-if="editingFile" class="pt-6 border-t mt-6 space-y-4">
+                <div class="flex items-center justify-between">
+                  <Label class="text-sm font-bold">Document Checklist</Label>
+                  <span class="text-xs font-medium text-muted-foreground">
+                    {{ editingFile.completed_requirements?.length || 0 }} / {{ editingFile.list?.requirements?.length || 0 }}
+                  </span>
+                </div>
+
+                <div class="w-full bg-muted rounded-full h-2">
+                  <div class="bg-primary h-2 rounded-full transition-all duration-500"
+                    :style="{ width: `${((editingFile.completed_requirements?.length || 0) / (editingFile.list?.requirements?.length || 1)) * 100}%` }"
+                  ></div>
+                </div>
+
+                <div v-if="editingFile.list?.requirements?.length" class="space-y-2">
+                  <div v-for="req in editingFile.list.requirements" :key="req"
+                    @click="toggleRequirement(editingFile, req)"
+                    class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted active:scale-[0.98]"
+                    :class="editingFile.completed_requirements?.includes(req) ? 'bg-green-50/30 border-green-200' : 'bg-background border-muted'"
+                  >
+                    <CheckCircle2 v-if="editingFile.completed_requirements?.includes(req)" class="h-5 w-5 text-green-600" />
+                    <Circle v-else class="h-5 w-5 text-muted-foreground" />
+                    <span class="text-sm font-medium transition-colors" :class="{ 'text-muted-foreground italic': editingFile.completed_requirements?.includes(req) }">
+                      {{ req }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" @click="isEditDialogOpen = false">Cancel</Button>
+            <Button type="submit" form="edit-form" :disabled="editForm.processing">Update Folder</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -409,7 +426,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
         <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Folder Details</DialogTitle>
-            <DialogDescription>Full record and document checklist for {{ viewingFile?.fullname }}.</DialogDescription>
+            <DialogDescription>Summary for {{ viewingFile?.fullname }}.</DialogDescription>
           </DialogHeader>
 
           <div v-if="viewingFile" class="flex-1 overflow-y-auto pr-2 py-4 space-y-6 scrollbar-thin">
@@ -421,9 +438,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               <div>
                 <Label class="text-[10px] uppercase font-bold text-muted-foreground">Overall Status</Label>
                 <div class="mt-1">
-                  <Badge :variant="viewingFile.completed ? 'default' : 'outline'">
-                    {{ viewingFile.completed ? 'Completed' : 'In Progress' }}
-                  </Badge>
+                  <Badge :variant="viewingFile.completed ? 'default' : 'outline'">{{ viewingFile.completed ? 'Completed' : 'In Progress' }}</Badge>
                 </div>
               </div>
               <div>
@@ -436,60 +451,50 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               <div>
                 <Label class="text-[10px] uppercase font-bold text-muted-foreground">Mode of Separation</Label>
                 <div class="mt-1">
-                  <Badge :variant="getPriorityVariant(viewingFile.priority)">
-                    {{ viewingFile.priority }}
-                  </Badge>
+                  <Badge :variant="getPriorityVariant(viewingFile.priority)">{{ viewingFile.priority }}</Badge>
                 </div>
               </div>
             </div>
 
             <div class="space-y-4">
-              <div class="flex items-center justify-between mb-2">
-                <Label class="text-sm font-bold">Document Checklist</Label>
-                <span class="text-xs font-medium">
+              <div class="flex items-center justify-between">
+                <Label class="text-sm font-bold">Document Status</Label>
+                <span class="text-xs font-medium text-muted-foreground">
                   {{ viewingFile.completed_requirements?.length || 0 }} / {{ viewingFile.list?.requirements?.length || 0 }} items
                 </span>
               </div>
 
               <div class="w-full bg-muted rounded-full h-2">
-                <div
-                  class="bg-primary h-2 rounded-full transition-all duration-500"
+                <div class="bg-primary h-2 rounded-full transition-all duration-500"
                   :style="{ width: `${((viewingFile.completed_requirements?.length || 0) / (viewingFile.list?.requirements?.length || 1)) * 100}%` }"
                 ></div>
               </div>
 
-              <div v-if="viewingFile.list?.requirements?.length" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                <div
-                  v-for="req in viewingFile.list.requirements"
-                  :key="req"
-                  @click="toggleRequirement(viewingFile, req)"
-                  class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98]"
-                  :class="viewingFile.completed_requirements?.includes(req) ? 'bg-green-50/50 border-green-200 shadow-sm' : 'bg-background border-muted'"
+              <div v-if="viewingFile.list?.requirements?.length" class="space-y-2">
+                <div v-for="req in viewingFile.list.requirements" :key="req"
+                  class="flex items-center gap-3 p-3 rounded-lg border bg-muted/5 opacity-80"
                 >
-                  <div class="flex-shrink-0">
-                    <CheckCircle2 v-if="viewingFile.completed_requirements?.includes(req)" class="h-5 w-5 text-green-600" />
-                    <Circle v-else class="h-5 w-5 text-muted-foreground" />
-                  </div>
-
-                  <span class="text-sm font-medium" :class="{ 'line-through text-muted-foreground italic': viewingFile.completed_requirements?.includes(req) }">
+                  <CheckCircle2 v-if="viewingFile.completed_requirements?.includes(req)" class="h-5 w-5 text-green-600" />
+                  <Circle v-else class="h-5 w-5 text-muted-foreground/40" />
+                  <span class="text-sm transition-colors" :class="{ 'text-muted-foreground italic': viewingFile.completed_requirements?.includes(req) }">
                     {{ req }}
                   </span>
                 </div>
               </div>
-              <div v-else class="text-sm text-center py-8 text-muted-foreground italic bg-muted/10 rounded-md border-dashed border-2">
-                No document requirements set for this type.
-              </div>
             </div>
 
             <div class="border-t pt-4">
-              <Label class="text-[10px] uppercase font-bold text-muted-foreground">Remarks / Description</Label>
-              <p class="text-sm mt-1 whitespace-pre-wrap bg-muted/30 p-4 rounded-md italic">
-                {{ viewingFile.description || 'No remarks provided for this record.' }}
+              <Label class="text-[10px] uppercase font-bold text-muted-foreground">Remarks</Label>
+              <p class="text-sm mt-1 whitespace-pre-wrap bg-muted/30 p-4 rounded-md italic text-muted-foreground">
+                {{ viewingFile.description || 'No remarks provided.' }}
               </p>
             </div>
           </div>
 
-          <div class="flex justify-end pt-4 border-t">
+          <div class="flex justify-between items-center pt-4 border-t">
+            <Button variant="ghost" class="text-blue-600 hover:bg-blue-50" @click="isViewDialogOpen = false; openEditDialog(viewingFile)">
+              <Edit2 class="h-4 w-4 mr-2" /> Modify Record
+            </Button>
             <Button variant="outline" @click="isViewDialogOpen = false" class="px-8">Close</Button>
           </div>
         </DialogContent>
@@ -500,15 +505,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 </template>
 
 <style scoped>
-/* Custom scrollbar for checklist for better visibility */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
-}
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 </style>
