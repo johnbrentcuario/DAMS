@@ -169,28 +169,39 @@ const toggleFileCompletion = (file: File) => {
   router.put(`/files/${file.id}`, { ...file, completed: !file.completed }, { preserveScroll: true })
 }
 
+/**
+ * Logic to toggle requirements and automatically update status
+ */
 const toggleRequirement = (file: File, requirement: string) => {
   const currentReqs = [...(file.completed_requirements || [])];
   const index = currentReqs.indexOf(requirement);
 
+  // Add or remove requirement
   if (index > -1) {
     currentReqs.splice(index, 1);
   } else {
     currentReqs.push(requirement);
   }
 
+  // Check if all requirements are completed
+  const totalRequired = file.list?.requirements?.length || 0;
+  const isNowComplete = totalRequired > 0 && currentReqs.length === totalRequired;
+
   router.put(`/files/${file.id}`, {
     ...file,
-    completed_requirements: currentReqs
+    completed_requirements: currentReqs,
+    completed: isNowComplete // Auto-update completion status
   }, {
     preserveScroll: true,
     onSuccess: () => {
-      // Sync local state for immediate feedback
+      // Sync local state for immediate UI feedback in dialogs
       if (editingFile.value && editingFile.value.id === file.id) {
         editingFile.value.completed_requirements = currentReqs;
+        editingFile.value.completed = isNowComplete;
       }
       if (viewingFile.value && viewingFile.value.id === file.id) {
         viewingFile.value.completed_requirements = currentReqs;
+        viewingFile.value.completed = isNowComplete;
       }
     }
   });
@@ -393,7 +404,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </div>
 
                 <div class="w-full bg-muted rounded-full h-2">
-                  <div class="bg-primary h-2 rounded-full transition-all duration-500"
+                  <div class="h-2 rounded-full transition-all duration-500"
+                    :class="editingFile.completed ? 'bg-green-500' : 'bg-primary'"
                     :style="{ width: `${((editingFile.completed_requirements?.length || 0) / (editingFile.list?.requirements?.length || 1)) * 100}%` }"
                   ></div>
                 </div>
@@ -465,7 +477,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               </div>
 
               <div class="w-full bg-muted rounded-full h-2">
-                <div class="bg-primary h-2 rounded-full transition-all duration-500"
+                <div class="h-2 rounded-full transition-all duration-500"
+                  :class="viewingFile.completed ? 'bg-green-500' : 'bg-primary'"
                   :style="{ width: `${((viewingFile.completed_requirements?.length || 0) / (viewingFile.list?.requirements?.length || 1)) * 100}%` }"
                 ></div>
               </div>
