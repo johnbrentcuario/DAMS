@@ -17,5 +17,7 @@ Route::get('dashboard', function () {
 
 Route::resource('lists', ListController::class);
 Route::resource('files', FileController::class);
+Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');
+Route::delete('/files/{file}/upload', [FileController::class, 'removeAttachment'])->name('files.remove_upload');
 
 require __DIR__.'/settings.php';

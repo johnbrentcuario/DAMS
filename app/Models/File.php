@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class File extends Model
 {
     use HasFactory;
@@ -13,13 +14,14 @@ class File extends Model
         'list_id',
         'fullname',
         'description',
-        'priority',
-        'completed',
-        'completed_requirements'
+        'attachments', // <--- Add this!
+        'priority',    // Keep if you need for sorting
+        'completed',   // Keep if you need for status
     ];
+
     protected $casts = [
-        'completed' => 'boolean',
-        'completed_requirements' => 'array',
+        // This ensures the JSON in the DB becomes a clean PHP array
+        'attachments' => 'array',
     ];
 
     public function list(): BelongsTo

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('list_id')->constrained('lists')->cascadeOnDelete();
             $table->string('fullname');
             $table->text('description')->nullable();
+            $table->json('attachments')->nullable();
             $table->string('priority', 16)->default('normal');
             $table->boolean('completed')->default(false);
             $table->timestamps();

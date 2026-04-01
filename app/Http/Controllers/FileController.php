@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
-use App\Models\FileList;
 use App\Models\File;
+use App\Models\FileList;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -13,7 +14,6 @@ class FileController extends Controller
 {
     public function index(Request $request): Response
     {
-        // FIX 1: Include 'requirements' from the list and select 'completed_requirements' from the file
         $query = File::query()->with(['list' => function ($q) {
             $q->select('id', 'name', 'color', 'requirements');
         }]);
@@ -26,11 +26,6 @@ class FileController extends Controller
             });
         }
 
-        // Priority filter
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
-        }
-
         // List filter
         if ($request->filled('list_id')) {
             $query->where('list_id', $request->list_id);
@@ -38,13 +33,12 @@ class FileController extends Controller
 
         $files = $query->latest()->paginate(10)->withQueryString();
 
-        // FIX 2: Ensure lists also carry their requirements for the Create/Edit modals
         $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
 
         return Inertia::render('files/index', [
             'files' => $files,
             'lists' => $lists,
-            'filters' => $request->only(['search', 'priority', 'list_id']),
+            'filters' => $request->only(['search', 'list_id']),
         ]);
     }
 
@@ -53,42 +47,77 @@ class FileController extends Controller
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'priority' => ['nullable', 'string', 'max:16'],
-            'completed' => ['nullable', 'boolean'],
             'list_id' => ['required', 'exists:lists,id'],
-            'completed_requirements' => ['nullable', 'array'], // FIX 3: Allow saving checklist
         ]);
-
-        $validated['completed'] = (bool) ($validated['completed'] ?? false);
-        $validated['priority'] = $validated['priority'] ?? 'normal';
 
         File::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Record created successfully.');
     }
 
+    /**
+     * The consolidated Update method handling metadata,
+     * batch uploads, and batch deletions.
+     */
     public function update(Request $request, File $file): RedirectResponse
     {
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'priority' => ['nullable', 'string', 'max:16'],
-            'completed' => ['nullable', 'boolean'],
-            'list_id' => 'required|exists:lists,id',
-            'completed_requirements' => ['nullable', 'array'], // FIX 4: Allow updating checklist
+            'list_id' => ['required', 'exists:lists,id'],
+            'new_attachments' => ['nullable', 'array'],
+            'new_attachments.*' => ['file', 'mimes:pdf,jpg,png,docx', 'max:5120'],
+            'delete_attachments' => ['nullable', 'array'],
         ]);
 
-        $validated['completed'] = (bool) ($validated['completed'] ?? $file->completed);
-        $validated['priority'] = $validated['priority'] ?? $file->priority;
+        // Get existing attachments from the JSON column
+        $attachments = $file->attachments ?? [];
 
-        $file->update($validated);
+        // 1. Handle Deletions (Marked in the UI)
+        if ($request->filled('delete_attachments')) {
+            foreach ($request->delete_attachments as $reqName) {
+                if (isset($attachments[$reqName])) {
+                    Storage::disk('public')->delete($attachments[$reqName]);
+                    unset($attachments[$reqName]);
+                }
+            }
+        }
 
-        return redirect()->back();
+        // 2. Handle New Uploads (Added in the UI)
+        if ($request->hasFile('new_attachments')) {
+            foreach ($request->file('new_attachments') as $reqName => $uploadedFile) {
+                // If a file already exists for this requirement, delete the old one first
+                if (isset($attachments[$reqName])) {
+                    Storage::disk('public')->delete($attachments[$reqName]);
+                }
+
+                // Store the new file and update the path in the array
+                $path = $uploadedFile->store('attachments', 'public');
+                $attachments[$reqName] = $path;
+            }
+        }
+
+        // 3. Update the database record
+        $file->update([
+            'fullname' => $validated['fullname'],
+            'description' => $validated['description'],
+            'list_id' => $validated['list_id'],
+            'attachments' => $attachments,
+        ]);
+
+        return redirect()->back()->with('success', 'Changes saved successfully.');
     }
 
     public function destroy(File $file): RedirectResponse
     {
+        // Delete all associated physical files before deleting the record
+        if ($file->attachments) {
+            foreach ($file->attachments as $path) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
         $file->delete();
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Record deleted.');
     }
 }

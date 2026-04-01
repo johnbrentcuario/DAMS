@@ -17,7 +17,6 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import InputError from '@/components/InputError.vue'
-import { Badge } from '@/components/ui/badge'
 
 import {
   Plus,
@@ -27,28 +26,22 @@ import {
   Circle,
   Edit2,
   Eye,
-  FilterX
+  FilterX,
+  FileUp,
+  FileText,
+  XCircle,
+  RotateCcw
 } from 'lucide-vue-next'
 
 /* =======================
-   Constants & Types
+    Constants & Types
 ======================= */
-const SEPARATION_METHODS = [
-  'Resignation', 'Retirement', 'End of Contract', 'Termination',
-  'Retrenchment', 'Redundancy', 'Layoff', 'Probation Fail',
-  'Mutual Agreement', 'Death'
-] as const;
-
-type SeparationMethod = typeof SEPARATION_METHODS[number];
-
-interface File {
+interface FileRecord {
   id: number
   fullname: string
   description?: string
-  priority: SeparationMethod
-  completed: boolean
   list_id: number
-  completed_requirements: string[]
+  attachments: Record<string, string>
   list: {
     id: number
     name: string
@@ -65,7 +58,7 @@ interface FileList {
 }
 
 interface PaginationFiles {
-  data: File[]
+  data: FileRecord[]
   total: number
   links: { url: string | null; label: string; active: boolean }[]
 }
@@ -73,22 +66,20 @@ interface PaginationFiles {
 const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
-  filters: { search?: string; priority?: string; list_id?: string }
+  filters: { search?: string; list_id?: string }
 }>()
 
 /* =======================
-   Logic & Filters
+    Logic & Filters
 ======================= */
 const search = ref(props.filters.search || '')
-const priority = ref(props.filters.priority || '')
 const listId = ref(props.filters.list_id || '')
 
 watchDebounced(
-  [search, priority, listId],
+  [search, listId],
   () => {
     router.get('/files', {
       search: search.value || undefined,
-      priority: priority.value || undefined,
       list_id: listId.value || undefined
     }, { preserveState: true, preserveScroll: true, replace: true })
   },
@@ -97,49 +88,101 @@ watchDebounced(
 
 const clearFilters = () => {
   search.value = ''
-  priority.value = ''
   listId.value = ''
 }
 
 /* =======================
-   Forms & Actions
+    Forms & State Management
 ======================= */
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
 const isViewDialogOpen = ref(false)
 
-const editingFile = ref<File | null>(null)
-const viewingFile = ref<File | null>(null)
+const editingFile = ref<FileRecord | null>(null)
+const viewingFile = ref<FileRecord | null>(null)
 const deletingFileId = ref<number | null>(null)
+
+// Local state for changes not yet saved to server
+const pendingUploads = ref<Record<string, File>>({})
+const pendingDeletions = ref<string[]>([])
 
 const createForm = useForm({
   fullname: '',
   description: '',
   list_id: '',
-  priority: '' as SeparationMethod | ''
 })
 
 const editForm = useForm({
+  _method: 'put', // Required for Laravel to process files in a PUT request
   fullname: '',
   description: '',
-  priority: '' as SeparationMethod | '',
-  list_id: '' as number | ''
+  list_id: '' as number | '',
+  new_attachments: {} as Record<string, File>,
+  delete_attachments: [] as string[]
 })
 
-const openViewDialog = (file: File) => {
+/* =======================
+    Dialog Actions
+======================= */
+const openViewDialog = (file: FileRecord) => {
   viewingFile.value = file
   isViewDialogOpen.value = true
 }
 
-const openEditDialog = (file: File) => {
+const openEditDialog = (file: FileRecord) => {
   editingFile.value = { ...file }
   editForm.fullname = file.fullname
   editForm.description = file.description || ''
-  editForm.priority = file.priority
   editForm.list_id = file.list_id
+
+  // Reset local pending states
+  pendingUploads.value = {}
+  pendingDeletions.value = []
   isEditDialogOpen.value = true
 }
 
+/* =======================
+    File Logic (Local Only)
+======================= */
+const handleFileUploadLocal = (event: Event, requirement: string) => {
+  const target = event.target as HTMLInputElement;
+  if (!target.files?.length) return;
+
+  const file = target.files[0];
+  pendingUploads.value[requirement] = file;
+
+  // If user previously marked this for deletion, unmark it because they are uploading a new one
+  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
+  target.value = '';
+};
+
+const removeFileLocal = (requirement: string) => {
+  // If it was a new upload not yet saved, just drop it from pending
+  if (pendingUploads.value[requirement]) {
+    delete pendingUploads.value[requirement];
+  } else {
+    // If it exists on server, mark for deletion
+    if (!pendingDeletions.value.includes(requirement)) {
+      pendingDeletions.value.push(requirement);
+    }
+  }
+};
+
+const restoreFileLocal = (requirement: string) => {
+  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
+};
+
+// Helper to determine the UI state of a requirement row
+const getStatus = (req: string) => {
+  if (pendingDeletions.value.includes(req)) return 'deleted';
+  if (pendingUploads.value[req]) return 'new';
+  if (editingFile.value?.attachments?.[req]) return 'exists';
+  return 'empty';
+};
+
+/* =======================
+    Server Submissions
+======================= */
 const createFile = () => {
   createForm.post('/files', {
     onSuccess: () => {
@@ -151,65 +194,26 @@ const createFile = () => {
 
 const updateFile = () => {
   if (!editingFile.value) return
-  editForm.put(`/files/${editingFile.value.id}`, {
+
+  // Sync local pending changes into the Inertia form
+  editForm.new_attachments = pendingUploads.value;
+  editForm.delete_attachments = pendingDeletions.value;
+
+  editForm.post(`/files/${editingFile.value.id}`, {
+    preserveScroll: true,
     onSuccess: () => {
       isEditDialogOpen.value = false
       editForm.reset()
+      pendingUploads.value = {}
+      pendingDeletions.value = []
     }
   })
 }
 
-const deleteFile = (id: number) => {
-  if (!confirm('Delete this record?')) return
+const deleteFileRecord = (id: number) => {
+  if (!confirm('Permanently delete this personnel record?')) return
   deletingFileId.value = id
   router.delete(`/files/${id}`, { onFinish: () => deletingFileId.value = null })
-}
-
-const toggleFileCompletion = (file: File) => {
-  router.put(`/files/${file.id}`, { ...file, completed: !file.completed }, { preserveScroll: true })
-}
-
-/**
- * Logic to toggle requirements and automatically update status
- */
-const toggleRequirement = (file: File, requirement: string) => {
-  const currentReqs = [...(file.completed_requirements || [])];
-  const index = currentReqs.indexOf(requirement);
-
-  // Add or remove requirement
-  if (index > -1) {
-    currentReqs.splice(index, 1);
-  } else {
-    currentReqs.push(requirement);
-  }
-
-  // Check if all requirements are completed
-  const totalRequired = file.list?.requirements?.length || 0;
-  const isNowComplete = totalRequired > 0 && currentReqs.length === totalRequired;
-
-  router.put(`/files/${file.id}`, {
-    ...file,
-    completed_requirements: currentReqs,
-    completed: isNowComplete // Auto-update completion status
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      // Sync local state for immediate UI feedback in dialogs
-      if (editingFile.value && editingFile.value.id === file.id) {
-        editingFile.value.completed_requirements = currentReqs;
-        editingFile.value.completed = isNowComplete;
-      }
-      if (viewingFile.value && viewingFile.value.id === file.id) {
-        viewingFile.value.completed_requirements = currentReqs;
-        viewingFile.value.completed = isNowComplete;
-      }
-    }
-  });
-};
-
-const getPriorityVariant = (method: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-  const highRisk = ['Termination', 'Death', 'Layoff', 'Redundancy', 'Probation Fail'];
-  return highRisk.includes(method) ? 'destructive' : 'secondary';
 }
 
 const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none transition-shadow";
@@ -219,53 +223,39 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
   <Head title="Folders Management" />
 
   <AppLayout>
-    <div class="p-6 space-y-6 w-full">
+    <div class="p-6 space-y-6 w-full max-w-7xl mx-auto">
 
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">All Folders</h1>
-          <p class="text-muted-foreground">{{ files.total }} Folders Found</p>
+          <h1 class="text-3xl font-bold tracking-tight">Personnel Files</h1>
+          <p class="text-muted-foreground">{{ files.total }} Records Found</p>
         </div>
 
         <Dialog v-model:open="isCreateDialogOpen">
           <DialogTrigger as-child>
-            <Button size="lg" class="shadow-sm"><Plus class="h-5 w-5 mr-2" /> Add Folder</Button>
+            <Button size="lg" class="shadow-sm transition-all active:scale-95">
+              <Plus class="h-5 w-5 mr-2" /> New Folder
+            </Button>
           </DialogTrigger>
-
-          <DialogContent class="sm:max-w-[550px]">
-            <DialogHeader>
-              <DialogTitle>New Folder</DialogTitle>
-            </DialogHeader>
-
+          <DialogContent class="sm:max-w-[500px]">
+            <DialogHeader><DialogTitle>Create New Record</DialogTitle></DialogHeader>
             <form @submit.prevent="createFile" class="space-y-4 pt-4">
               <div class="space-y-2">
                 <Label>Full Name</Label>
-                <Input v-model="createForm.fullname" placeholder="e.g. John Smith" required />
+                <Input v-model="createForm.fullname" placeholder="Enter employee name" required />
                 <InputError :message="createForm.errors.fullname" />
               </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                  <Label>Employment Type</Label>
-                  <select v-model="createForm.list_id" :class="selectStyle" required>
-                    <option value="">Select Type</option>
-                    <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
-                  </select>
-                </div>
-                <div class="space-y-2">
-                  <Label>Mode of Separation</Label>
-                  <select v-model="createForm.priority" :class="selectStyle" required>
-                    <option value="">Select Mode</option>
-                    <option v-for="method in SEPARATION_METHODS" :key="method" :value="method">{{ method }}</option>
-                  </select>
-                </div>
-              </div>
-
               <div class="space-y-2">
-                <Label>Description / Remarks</Label>
-                <textarea v-model="createForm.description" :class="selectStyle" class="min-h-[100px] resize-none" placeholder="Optional details..." />
+                <Label>Employment Category</Label>
+                <select v-model="createForm.list_id" :class="selectStyle" required>
+                  <option value="">Select Type</option>
+                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                </select>
               </div>
-
+              <div class="space-y-2">
+                <Label>Remarks</Label>
+                <textarea v-model="createForm.description" :class="selectStyle" class="min-h-[100px] resize-none" />
+              </div>
               <Button type="submit" class="w-full" :disabled="createForm.processing">
                 <Loader2 v-if="createForm.processing" class="h-4 w-4 mr-2 animate-spin" />
                 Create Record
@@ -276,22 +266,15 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
       </div>
 
       <Card class="shadow-sm border-muted">
-        <CardContent class="grid md:grid-cols-3 lg:grid-cols-4 gap-4 pt-6">
-          <Input v-model="search" placeholder="Search by name..." class="w-full" />
-
-          <select v-model="priority" :class="selectStyle">
-            <option value="">All Modes of Separation</option>
-            <option v-for="method in SEPARATION_METHODS" :key="method" :value="method">{{ method }}</option>
-          </select>
-
+        <CardContent class="grid md:grid-cols-3 gap-4 pt-6">
+          <Input v-model="search" placeholder="Search by name..." />
           <select v-model="listId" :class="selectStyle">
-            <option value="">All Employment Types</option>
+            <option value="">All Categories</option>
             <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
           </select>
-
-          <div v-if="search || priority || listId" class="flex items-center">
-            <Button variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive">
-              <FilterX class="h-4 w-4 mr-2" /> Reset
+          <div class="flex items-center">
+            <Button v-if="search || listId" variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive">
+              <FilterX class="h-4 w-4 mr-2" /> Reset Filters
             </Button>
           </div>
         </CardContent>
@@ -303,47 +286,33 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             <table class="w-full text-sm">
               <thead class="bg-muted/40 border-b">
                 <tr>
-                  <th class="p-4 text-center font-semibold w-20">Status</th>
-                  <th class="p-4 text-left font-semibold">Full Name</th>
-                  <th class="p-4 text-left font-semibold hidden md:table-cell">Remarks</th>
-                  <th class="p-5 text-left font-semibold">Mode</th>
-                  <th class="p-4 text-left font-semibold">Type</th>
-                  <th class="p-4 text-center font-semibold w-32">Actions</th>
+                  <th class="p-4 text-left font-semibold pl-6">Full Name</th>
+                  <th class="p-4 text-left font-semibold">Category</th>
+                  <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
+                  <th class="p-4 text-center font-semibold w-40">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y">
-                <tr v-for="file in files.data" :key="file.id" class="hover:bg-muted/20 transition-colors group">
-                  <td class="p-4 text-center">
-                    <button @click="toggleFileCompletion(file)" class="focus:outline-none focus:ring-2 focus:ring-primary rounded-full p-1">
-                      <CheckCircle2 v-if="file.completed" class="text-green-600 h-5 w-5" />
-                      <Circle v-else class="text-muted-foreground h-5 w-5" />
-                    </button>
-                  </td>
-                  <td class="p-4 font-medium">{{ file.fullname }}</td>
-                  <td class="p-4 text-muted-foreground hidden md:table-cell">
-                    <span v-if="file.description" class="line-clamp-1 text-xs">{{ file.description }}</span>
-                    <span v-else class="italic opacity-50 text-xs">No remarks</span>
-                  </td>
-                  <td class="p-4">
-                    <Badge :variant="getPriorityVariant(file.priority)" class="truncate px-2.5 py-0.5 font-normal">
-                      {{ file.priority }}
-                    </Badge>
-                  </td>
+                <tr v-for="file in files.data" :key="file.id" class="hover:bg-muted/10 transition-colors group">
+                  <td class="p-4 font-medium pl-6">{{ file.fullname }}</td>
                   <td class="p-4">
                     <div class="flex items-center gap-2">
-                      <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: file.list?.color || '#cbd5e1' }"></div>
-                      <span class="truncate">{{ file.list?.name }}</span>
+                      <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
+                      <span>{{ file.list?.name }}</span>
                     </div>
                   </td>
-                  <td class="p-4 text-center">
-                    <div class="flex justify-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <td class="p-4 text-muted-foreground hidden lg:table-cell italic text-xs">
+                    {{ file.description || 'N/A' }}
+                  </td>
+                  <td class="p-4">
+                    <div class="flex justify-center gap-1 opacity-90 group-hover:opacity-100">
                       <Button variant="ghost" size="icon" @click="openViewDialog(file)" class="h-8 w-8 text-blue-600 hover:bg-blue-50">
                         <Eye class="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8">
+                      <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8 hover:bg-muted">
                         <Edit2 class="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive" @click="deleteFile(file.id)" :disabled="deletingFileId === file.id">
+                      <Button variant="ghost" size="icon" @click="deleteFileRecord(file.id)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
                         <Loader2 v-if="deletingFileId === file.id" class="h-4 w-4 animate-spin" />
                         <Trash2 v-else class="h-4 w-4" />
                       </Button>
@@ -353,162 +322,154 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               </tbody>
             </table>
           </div>
-
           <div class="p-4 border-t flex items-center justify-between bg-muted/5">
             <div class="flex gap-1">
               <Link v-for="link in files.links" :key="link.label" :href="link.url || '#'" v-html="link.label"
                 class="px-3 py-1.5 border rounded-md text-xs font-medium"
-                :class="{ 'bg-primary text-white border-primary shadow-sm': link.active, 'opacity-50 pointer-events-none': !link.url }"
+                :class="{ 'bg-primary text-white border-primary': link.active, 'opacity-40 pointer-events-none': !link.url }"
               />
             </div>
-            <p class="text-xs text-muted-foreground">Showing {{ files.data.length }} records</p>
           </div>
         </CardContent>
       </Card>
 
       <Dialog v-model:open="isEditDialogOpen">
-        <DialogContent class="sm:max-w-[600px] max-h-[95vh] flex flex-col overflow-hidden">
-          <DialogHeader><DialogTitle>Edit Record & Checklist</DialogTitle></DialogHeader>
+        <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader class="p-6 pb-2 border-b">
+            <DialogTitle>Edit Record & Files</DialogTitle>
+          </DialogHeader>
 
-          <div class="flex-1 overflow-y-auto pr-2 py-4 scrollbar-thin">
+          <div class="flex-1 overflow-y-auto p-6 space-y-6">
             <form @submit.prevent="updateFile" id="edit-form" class="space-y-4">
+              <div class="space-y-2"><Label>Full Name</Label><Input v-model="editForm.fullname" required /></div>
               <div class="space-y-2">
-                <Label>Full Name</Label>
-                <Input v-model="editForm.fullname" required />
+                <Label>Category</Label>
+                <select v-model="editForm.list_id" :class="selectStyle" required>
+                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                </select>
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                  <Label>Employment Type</Label>
-                  <select v-model="editForm.list_id" :class="selectStyle" required>
-                    <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
-                  </select>
-                </div>
-                <div class="space-y-2">
-                  <Label>Mode of Separation</Label>
-                  <select v-model="editForm.priority" :class="selectStyle" required>
-                    <option v-for="method in SEPARATION_METHODS" :key="method" :value="method">{{ method }}</option>
-                  </select>
-                </div>
-              </div>
-              <div class="space-y-2">
-                <Label>Description / Remarks</Label>
-                <textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" />
+              <div class="space-y-2"><Label>Remarks</Label><textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" /></div>
+            </form>
+
+            <div v-if="editingFile" class="pt-6 border-t space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold flex items-center gap-2 text-primary">
+                  <FileText class="h-4 w-4" /> Documents Checklist
+                </h3>
+                <span class="text-[10px] text-muted-foreground uppercase font-bold">Changes will apply on save</span>
               </div>
 
-              <div v-if="editingFile" class="pt-6 border-t mt-6 space-y-4">
-                <div class="flex items-center justify-between">
-                  <Label class="text-sm font-bold">Document Checklist</Label>
-                  <span class="text-xs font-medium text-muted-foreground">
-                    {{ editingFile.completed_requirements?.length || 0 }} / {{ editingFile.list?.requirements?.length || 0 }}
-                  </span>
-                </div>
+              <div v-if="editingFile.list?.requirements?.length" class="grid gap-2">
+                <div v-for="req in editingFile.list.requirements" :key="req"
+                  class="flex items-center justify-between p-3 rounded-lg border bg-card transition-all"
+                  :class="{ 'opacity-60 border-destructive bg-destructive/5': getStatus(req) === 'deleted' }"
+                >
+                  <div class="flex items-center gap-3 overflow-hidden">
+                    <CheckCircle2 v-if="getStatus(req) === 'exists'" class="h-5 w-5 text-green-500 shrink-0" />
+                    <FileUp v-else-if="getStatus(req) === 'new'" class="h-5 w-5 text-blue-500 shrink-0 animate-pulse" />
+                    <Trash2 v-else-if="getStatus(req) === 'deleted'" class="h-5 w-5 text-destructive shrink-0" />
+                    <Circle v-else class="h-5 w-5 text-muted-foreground/30 shrink-0" />
 
-                <div class="w-full bg-muted rounded-full h-2">
-                  <div class="h-2 rounded-full transition-all duration-500"
-                    :class="editingFile.completed ? 'bg-green-500' : 'bg-primary'"
-                    :style="{ width: `${((editingFile.completed_requirements?.length || 0) / (editingFile.list?.requirements?.length || 1)) * 100}%` }"
-                  ></div>
-                </div>
+                    <div class="flex flex-col overflow-hidden">
+                      <span class="text-sm font-medium truncate">{{ req }}</span>
+                      <span v-if="getStatus(req) === 'new'" class="text-[10px] text-blue-600 font-bold uppercase">Pending Upload</span>
+                      <span v-if="getStatus(req) === 'deleted'" class="text-[10px] text-destructive font-bold uppercase">Marked for removal</span>
+                    </div>
+                  </div>
 
-                <div v-if="editingFile.list?.requirements?.length" class="space-y-2">
-                  <div v-for="req in editingFile.list.requirements" :key="req"
-                    @click="toggleRequirement(editingFile, req)"
-                    class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted active:scale-[0.98]"
-                    :class="editingFile.completed_requirements?.includes(req) ? 'bg-green-50/30 border-green-200' : 'bg-background border-muted'"
-                  >
-                    <CheckCircle2 v-if="editingFile.completed_requirements?.includes(req)" class="h-5 w-5 text-green-600" />
-                    <Circle v-else class="h-5 w-5 text-muted-foreground" />
-                    <span class="text-sm font-medium transition-colors" :class="{ 'text-muted-foreground italic': editingFile.completed_requirements?.includes(req) }">
-                      {{ req }}
-                    </span>
+                  <div class="flex items-center gap-1">
+                    <Button v-if="getStatus(req) === 'exists'" variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
+                      <a :href="`/storage/${editingFile.attachments[req]}`" target="_blank">
+                        <Eye class="h-4 w-4" />
+                      </a>
+                    </Button>
+
+                    <Button v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'"
+                      variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                    </Button>
+
+                    <Button v-if="getStatus(req) === 'deleted'"
+                      variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary"
+                    >
+                      <RotateCcw class="h-4 w-4" />
+                    </Button>
+
+                    <div class="relative" v-if="getStatus(req) !== 'deleted'">
+                      <input :id="`edit-input-${req}`" type="file" class="hidden" @change="handleFileUploadLocal($event, req)" />
+                      <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-muted-foreground hover:text-primary">
+                        <label :for="`edit-input-${req}`" class="cursor-pointer flex items-center justify-center">
+                          <FileUp class="h-4 w-4" />
+                        </label>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
 
-          <div class="flex justify-end gap-3 pt-4 border-t">
+          <div class="p-4 border-t flex justify-end gap-3 bg-muted/10">
             <Button variant="outline" @click="isEditDialogOpen = false">Cancel</Button>
-            <Button type="submit" form="edit-form" :disabled="editForm.processing">Update Folder</Button>
+            <Button type="submit" form="edit-form" :disabled="editForm.processing">
+              <Loader2 v-if="editForm.processing" class="h-4 w-4 mr-2 animate-spin" />
+              Save Changes
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog v-model:open="isViewDialogOpen">
-        <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent class="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Folder Details</DialogTitle>
-            <DialogDescription>Summary for {{ viewingFile?.fullname }}.</DialogDescription>
+            <DialogTitle>Personnel Details</DialogTitle>
+            <DialogDescription>Full record view and document status</DialogDescription>
           </DialogHeader>
 
-          <div v-if="viewingFile" class="flex-1 overflow-y-auto pr-2 py-4 space-y-6 scrollbar-thin">
-            <div class="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg">
-              <div>
-                <Label class="text-[10px] uppercase font-bold text-muted-foreground">Full Name</Label>
-                <p class="text-sm font-semibold">{{ viewingFile.fullname }}</p>
+          <div v-if="viewingFile" class="space-y-6 pt-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Full Name</Label>
+                <p class="font-semibold text-lg">{{ viewingFile.fullname }}</p>
               </div>
-              <div>
-                <Label class="text-[10px] uppercase font-bold text-muted-foreground">Overall Status</Label>
-                <div class="mt-1">
-                  <Badge :variant="viewingFile.completed ? 'default' : 'outline'">{{ viewingFile.completed ? 'Completed' : 'In Progress' }}</Badge>
-                </div>
-              </div>
-              <div>
-                <Label class="text-[10px] uppercase font-bold text-muted-foreground">Employment Type</Label>
-                <div class="flex items-center gap-2 mt-1">
-                   <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: viewingFile.list?.color || '#cbd5e1' }"></div>
-                   <p class="text-sm">{{ viewingFile.list?.name }}</p>
-                </div>
-              </div>
-              <div>
-                <Label class="text-[10px] uppercase font-bold text-muted-foreground">Mode of Separation</Label>
-                <div class="mt-1">
-                  <Badge :variant="getPriorityVariant(viewingFile.priority)">{{ viewingFile.priority }}</Badge>
+              <div class="space-y-1">
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Category</Label>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: viewingFile.list?.color }"></div>
+                  <p class="font-medium">{{ viewingFile.list?.name }}</p>
                 </div>
               </div>
             </div>
 
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <Label class="text-sm font-bold">Document Status</Label>
-                <span class="text-xs font-medium text-muted-foreground">
-                  {{ viewingFile.completed_requirements?.length || 0 }} / {{ viewingFile.list?.requirements?.length || 0 }} items
-                </span>
-              </div>
-
-              <div class="w-full bg-muted rounded-full h-2">
-                <div class="h-2 rounded-full transition-all duration-500"
-                  :class="viewingFile.completed ? 'bg-green-500' : 'bg-primary'"
-                  :style="{ width: `${((viewingFile.completed_requirements?.length || 0) / (viewingFile.list?.requirements?.length || 1)) * 100}%` }"
-                ></div>
-              </div>
-
-              <div v-if="viewingFile.list?.requirements?.length" class="space-y-2">
-                <div v-for="req in viewingFile.list.requirements" :key="req"
-                  class="flex items-center gap-3 p-3 rounded-lg border bg-muted/5 opacity-80"
-                >
-                  <CheckCircle2 v-if="viewingFile.completed_requirements?.includes(req)" class="h-5 w-5 text-green-600" />
-                  <Circle v-else class="h-5 w-5 text-muted-foreground/40" />
-                  <span class="text-sm transition-colors" :class="{ 'text-muted-foreground italic': viewingFile.completed_requirements?.includes(req) }">
-                    {{ req }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="border-t pt-4">
-              <Label class="text-[10px] uppercase font-bold text-muted-foreground">Remarks</Label>
-              <p class="text-sm mt-1 whitespace-pre-wrap bg-muted/30 p-4 rounded-md italic text-muted-foreground">
-                {{ viewingFile.description || 'No remarks provided.' }}
+            <div class="space-y-1">
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Remarks</Label>
+              <p class="text-sm bg-muted/30 p-3 rounded-md italic border">
+                {{ viewingFile.description || 'No additional remarks provided.' }}
               </p>
             </div>
-          </div>
 
-          <div class="flex justify-between items-center pt-4 border-t">
-            <Button variant="ghost" class="text-blue-600 hover:bg-blue-50" @click="isViewDialogOpen = false; openEditDialog(viewingFile)">
-              <Edit2 class="h-4 w-4 mr-2" /> Modify Record
-            </Button>
-            <Button variant="outline" @click="isViewDialogOpen = false" class="px-8">Close</Button>
+            <div class="space-y-3">
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Document Checklist</Label>
+              <div class="grid gap-2">
+                <div v-for="req in viewingFile.list?.requirements" :key="req"
+                     class="flex items-center justify-between p-3 border rounded-lg bg-background">
+                  <div class="flex items-center gap-3">
+                    <CheckCircle2 v-if="viewingFile.attachments?.[req]" class="h-5 w-5 text-green-500" />
+                    <XCircle v-else class="h-5 w-5 text-destructive/40" />
+                    <span class="text-sm font-medium">{{ req }}</span>
+                  </div>
+                  <div v-if="viewingFile.attachments?.[req]">
+                    <Button variant="outline" size="sm" as-child class="h-8 gap-2">
+                      <a :href="`/storage/${viewingFile.attachments[req]}`" target="_blank">
+                        <Eye class="h-3.5 w-3.5" /> View
+                      </a>
+                    </Button>
+                  </div>
+                  <span v-else class="text-xs font-bold text-destructive uppercase">Missing</span>
+                </div>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -516,9 +477,3 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
     </div>
   </AppLayout>
 </template>
-
-<style scoped>
-.scrollbar-thin::-webkit-scrollbar { width: 4px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-</style>
