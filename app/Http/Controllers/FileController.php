@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\FileList;
+use App\Models\PhysicalLocation; // NEW: Import the model
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,9 +15,11 @@ class FileController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = File::query()->with(['list' => function ($q) {
-            $q->select('id', 'name', 'color', 'requirements');
-        }]);
+        // Added 'physical_location' to the with() call so the table can show names/colors
+        $query = File::query()->with([
+            'list:id,name,color,requirements',
+            'physical_location' // NEW: Eager load the location
+        ]);
 
         // Search filter
         if ($request->filled('search')) {
@@ -35,9 +38,13 @@ class FileController extends Controller
 
         $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
 
+        // NEW: Fetch all physical locations to populate the dropdowns
+        $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
+
         return Inertia::render('files/index', [
             'files' => $files,
             'lists' => $lists,
+            'physical_locations' => $physical_locations, // NEW: Pass this to Vue
             'filters' => $request->only(['search', 'list_id']),
         ]);
     }
@@ -48,6 +55,8 @@ class FileController extends Controller
             'fullname' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'list_id' => ['required', 'exists:lists,id'],
+            'physical_location_id' => ['nullable', 'exists:physical_locations,id'], // NEW
+            'physical_path' => ['nullable', 'string', 'max:255'],                   // NEW
         ]);
 
         File::create($validated);
@@ -55,25 +64,22 @@ class FileController extends Controller
         return redirect()->back()->with('success', 'Record created successfully.');
     }
 
-    /**
-     * The consolidated Update method handling metadata,
-     * batch uploads, and batch deletions.
-     */
     public function update(Request $request, File $file): RedirectResponse
     {
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'list_id' => ['required', 'exists:lists,id'],
+            'physical_location_id' => ['nullable', 'exists:physical_locations,id'], // NEW
+            'physical_path' => ['nullable', 'string', 'max:255'],                   // NEW
             'new_attachments' => ['nullable', 'array'],
             'new_attachments.*' => ['file', 'mimes:pdf,jpg,png,docx', 'max:5120'],
             'delete_attachments' => ['nullable', 'array'],
         ]);
 
-        // Get existing attachments from the JSON column
         $attachments = $file->attachments ?? [];
 
-        // 1. Handle Deletions (Marked in the UI)
+        // 1. Handle Deletions
         if ($request->filled('delete_attachments')) {
             foreach ($request->delete_attachments as $reqName) {
                 if (isset($attachments[$reqName])) {
@@ -83,25 +89,24 @@ class FileController extends Controller
             }
         }
 
-        // 2. Handle New Uploads (Added in the UI)
+        // 2. Handle New Uploads
         if ($request->hasFile('new_attachments')) {
             foreach ($request->file('new_attachments') as $reqName => $uploadedFile) {
-                // If a file already exists for this requirement, delete the old one first
                 if (isset($attachments[$reqName])) {
                     Storage::disk('public')->delete($attachments[$reqName]);
                 }
-
-                // Store the new file and update the path in the array
                 $path = $uploadedFile->store('attachments', 'public');
                 $attachments[$reqName] = $path;
             }
         }
 
-        // 3. Update the database record
+        // 3. Update the database record including physical location
         $file->update([
             'fullname' => $validated['fullname'],
             'description' => $validated['description'],
             'list_id' => $validated['list_id'],
+            'physical_location_id' => $validated['physical_location_id'], // NEW
+            'physical_path' => $validated['physical_path'],               // NEW
             'attachments' => $attachments,
         ]);
 
@@ -110,7 +115,6 @@ class FileController extends Controller
 
     public function destroy(File $file): RedirectResponse
     {
-        // Delete all associated physical files before deleting the record
         if ($file->attachments) {
             foreach ($file->attachments as $path) {
                 Storage::disk('public')->delete($path);

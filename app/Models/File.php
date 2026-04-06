@@ -12,20 +12,33 @@ class File extends Model
 
     protected $fillable = [
         'list_id',
+        'physical_location_id', // NEW: Reference to the Office/Location
+        'physical_path',        // NEW: The specific drawer or room string
         'fullname',
         'description',
-        'attachments', // <--- Add this!
-        'priority',    // Keep if you need for sorting
-        'completed',   // Keep if you need for status
+        'attachments',
+        'priority',
+        'completed',
     ];
 
     protected $casts = [
-        // This ensures the JSON in the DB becomes a clean PHP array
         'attachments' => 'array',
+        'completed' => 'boolean',
     ];
 
+    /**
+     * Get the category/list this file belongs to.
+     */
     public function list(): BelongsTo
     {
         return $this->belongsTo(FileList::class, 'list_id');
+    }
+
+    /**
+     * NEW: Get the physical location (Office) where this file is stored.
+     */
+    public function physical_location(): BelongsTo
+    {
+        return $this->belongsTo(PhysicalLocation::class, 'physical_location_id');
     }
 }

@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('priority', 16)->default('normal');
             $table->boolean('completed')->default(false);
             $table->timestamps();
+            $table->foreignId('physical_location_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('physical_path')->nullable();
         });
     }
 

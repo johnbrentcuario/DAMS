@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\PhysicalLocationController;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canRegister' => Features::enabled(Features::registration()),
@@ -17,6 +18,7 @@ Route::get('dashboard', function () {
 
 Route::resource('lists', ListController::class);
 Route::resource('files', FileController::class);
+Route::resource('physical-locations', PhysicalLocationController::class);
 Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');
 Route::delete('/files/{file}/upload', [FileController::class, 'removeAttachment'])->name('files.remove_upload');
 

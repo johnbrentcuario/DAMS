@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue' // Added computed for path logic
 import { watchDebounced } from '@vueuse/core'
 
 import { Button } from '@/components/ui/button'
@@ -30,17 +30,29 @@ import {
   FileUp,
   FileText,
   XCircle,
-  RotateCcw
+  RotateCcw,
+  MapPin, // NEW
+  Archive // NEW
 } from 'lucide-vue-next'
 
 /* =======================
     Constants & Types
 ======================= */
+// NEW: Location Interface
+interface PhysicalLocation {
+  id: number
+  name: string
+  color: string
+  storage_paths: string[]
+}
+
 interface FileRecord {
   id: number
   fullname: string
   description?: string
   list_id: number
+  physical_location_id?: number // NEW
+  physical_path?: string        // NEW
   attachments: Record<string, string>
   list: {
     id: number
@@ -48,6 +60,7 @@ interface FileRecord {
     color?: string
     requirements?: string[]
   }
+  physical_location?: PhysicalLocation // NEW
 }
 
 interface FileList {
@@ -66,6 +79,7 @@ interface PaginationFiles {
 const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
+  physical_locations: PhysicalLocation[] // NEW: Expected from Controller
   filters: { search?: string; list_id?: string }
 }>()
 
@@ -102,7 +116,6 @@ const editingFile = ref<FileRecord | null>(null)
 const viewingFile = ref<FileRecord | null>(null)
 const deletingFileId = ref<number | null>(null)
 
-// Local state for changes not yet saved to server
 const pendingUploads = ref<Record<string, File>>({})
 const pendingDeletions = ref<string[]>([])
 
@@ -110,16 +123,35 @@ const createForm = useForm({
   fullname: '',
   description: '',
   list_id: '',
+  physical_location_id: '' as number | '', // NEW
+  physical_path: ''                         // NEW
 })
 
 const editForm = useForm({
-  _method: 'put', // Required for Laravel to process files in a PUT request
+  _method: 'put',
   fullname: '',
   description: '',
   list_id: '' as number | '',
+  physical_location_id: '' as number | '', // NEW
+  physical_path: '',                        // NEW
   new_attachments: {} as Record<string, File>,
   delete_attachments: [] as string[]
 })
+
+/* =======================
+    Location Logic (Computed)
+======================= */
+// Filters the available paths based on which Office is selected in Create Form
+const availableCreatePaths = computed(() => {
+    const loc = props.physical_locations?.find(l => l.id === createForm.physical_location_id);
+    return loc ? loc.storage_paths : [];
+});
+
+// Filters the available paths based on which Office is selected in Edit Form
+const availableEditPaths = computed(() => {
+    const loc = props.physical_locations?.find(l => l.id === editForm.physical_location_id);
+    return loc ? loc.storage_paths : [];
+});
 
 /* =======================
     Dialog Actions
@@ -135,33 +167,31 @@ const openEditDialog = (file: FileRecord) => {
   editForm.description = file.description || ''
   editForm.list_id = file.list_id
 
-  // Reset local pending states
+  // NEW: Populate physical location fields
+  editForm.physical_location_id = file.physical_location_id || ''
+  editForm.physical_path = file.physical_path || ''
+
   pendingUploads.value = {}
   pendingDeletions.value = []
   isEditDialogOpen.value = true
 }
 
 /* =======================
-    File Logic (Local Only)
+    File Logic (Existing)
 ======================= */
 const handleFileUploadLocal = (event: Event, requirement: string) => {
   const target = event.target as HTMLInputElement;
   if (!target.files?.length) return;
-
   const file = target.files[0];
   pendingUploads.value[requirement] = file;
-
-  // If user previously marked this for deletion, unmark it because they are uploading a new one
   pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
   target.value = '';
 };
 
 const removeFileLocal = (requirement: string) => {
-  // If it was a new upload not yet saved, just drop it from pending
   if (pendingUploads.value[requirement]) {
     delete pendingUploads.value[requirement];
   } else {
-    // If it exists on server, mark for deletion
     if (!pendingDeletions.value.includes(requirement)) {
       pendingDeletions.value.push(requirement);
     }
@@ -172,7 +202,6 @@ const restoreFileLocal = (requirement: string) => {
   pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
 };
 
-// Helper to determine the UI state of a requirement row
 const getStatus = (req: string) => {
   if (pendingDeletions.value.includes(req)) return 'deleted';
   if (pendingUploads.value[req]) return 'new';
@@ -194,8 +223,6 @@ const createFile = () => {
 
 const updateFile = () => {
   if (!editingFile.value) return
-
-  // Sync local pending changes into the Inertia form
   editForm.new_attachments = pendingUploads.value;
   editForm.delete_attachments = pendingDeletions.value;
 
@@ -227,7 +254,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Personnel Files</h1>
+          <h1 class="text-3xl font-bold tracking-tight text-slate-900">Personnel Files</h1>
           <p class="text-muted-foreground">{{ files.total }} Records Found</p>
         </div>
 
@@ -245,13 +272,32 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 <Input v-model="createForm.fullname" placeholder="Enter employee name" required />
                 <InputError :message="createForm.errors.fullname" />
               </div>
-              <div class="space-y-2">
-                <Label>Employment Category</Label>
-                <select v-model="createForm.list_id" :class="selectStyle" required>
-                  <option value="">Select Type</option>
-                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label>Category</Label>
+                    <select v-model="createForm.list_id" :class="selectStyle" required>
+                    <option value="">Select Type</option>
+                    <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Physical Office</Label>
+                    <select v-model="createForm.physical_location_id" :class="selectStyle">
+                    <option value="">None / External</option>
+                    <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+                    </select>
+                </div>
+              </div>
+
+              <div v-if="createForm.physical_location_id" class="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <Label>Storage Unit / Drawer</Label>
+                <select v-model="createForm.physical_path" :class="selectStyle" required>
+                    <option value="">Select Location</option>
+                    <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
+
               <div class="space-y-2">
                 <Label>Remarks</Label>
                 <textarea v-model="createForm.description" :class="selectStyle" class="min-h-[100px] resize-none" />
@@ -288,7 +334,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 <tr>
                   <th class="p-4 text-left font-semibold pl-6">Full Name</th>
                   <th class="p-4 text-left font-semibold">Category</th>
-                  <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
+                  <th class="p-4 text-left font-semibold">Location</th> <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
                   <th class="p-4 text-center font-semibold w-40">Actions</th>
                 </tr>
               </thead>
@@ -300,6 +346,18 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                       <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
                       <span>{{ file.list?.name }}</span>
                     </div>
+                  </td>
+                  <td class="p-4">
+                    <div v-if="file.physical_location" class="flex flex-col">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                            <MapPin class="h-3 w-3" :style="{ color: file.physical_location.color }" />
+                            {{ file.physical_location.name }}
+                        </div>
+                        <div class="text-[10px] text-muted-foreground pl-4 flex items-center gap-1">
+                            <Archive class="h-2.5 w-2.5" /> {{ file.physical_path || 'Main Room' }}
+                        </div>
+                    </div>
+                    <span v-else class="text-xs text-muted-foreground italic">No mapping</span>
                   </td>
                   <td class="p-4 text-muted-foreground hidden lg:table-cell italic text-xs">
                     {{ file.description || 'N/A' }}
@@ -342,12 +400,31 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
           <div class="flex-1 overflow-y-auto p-6 space-y-6">
             <form @submit.prevent="updateFile" id="edit-form" class="space-y-4">
               <div class="space-y-2"><Label>Full Name</Label><Input v-model="editForm.fullname" required /></div>
-              <div class="space-y-2">
-                <Label>Category</Label>
-                <select v-model="editForm.list_id" :class="selectStyle" required>
-                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label>Category</Label>
+                    <select v-model="editForm.list_id" :class="selectStyle" required>
+                    <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Physical Office</Label>
+                    <select v-model="editForm.physical_location_id" :class="selectStyle">
+                        <option value="">None / External</option>
+                        <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+                    </select>
+                </div>
+              </div>
+
+              <div v-if="editForm.physical_location_id" class="space-y-2">
+                <Label>Specific Storage Path</Label>
+                <select v-model="editForm.physical_path" :class="selectStyle" required>
+                    <option value="">Select Location</option>
+                    <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
+
               <div class="space-y-2"><Label>Remarks</Label><textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" /></div>
             </form>
 
@@ -440,6 +517,18 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   <p class="font-medium">{{ viewingFile.list?.name }}</p>
                 </div>
               </div>
+            </div>
+
+            <div class="space-y-1">
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Physical Home</Label>
+                <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
+                  <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
+                  <div>
+                      <p class="font-medium text-slate-800">{{ viewingFile.physical_location.name }}</p>
+                      <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
+                  </div>
+                </div>
+                <p v-else class="text-sm italic text-muted-foreground">Not assigned to a physical office.</p>
             </div>
 
             <div class="space-y-1">

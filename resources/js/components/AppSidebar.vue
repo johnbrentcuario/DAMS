@@ -29,6 +29,11 @@ const mainNavItems: NavItem[] = [
         icon: List,
     },
     {
+        title: 'Locations',
+        href: '/physical-locations',
+        icon: List,
+    },
+    {
         title: 'Folder',
         href: '/files',
         icon: Folder,
