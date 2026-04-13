@@ -6,15 +6,24 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Trash2, MapPin, X, Archive, Pencil } from 'lucide-vue-next'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogDescription
+} from '@/components/ui/dialog'
+import { Plus, Trash2, MapPin, X, Archive, Pencil, AlertTriangle } from 'lucide-vue-next'
 
 const props = defineProps<{ locations: any[] }>()
 
 // --- State for Dialogs ---
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
-const selectedLocationId = ref<number | null>(null)
+const isDeleteOpen = ref(false)
+const selectedLocation = ref<any>(null)
 
 // --- Forms ---
 const createForm = useForm({
@@ -44,26 +53,34 @@ const submitCreate = () => {
 }
 
 const openEdit = (loc: any) => {
-    selectedLocationId.value = loc.id
+    selectedLocation.value = loc
     editForm.name = loc.name
     editForm.color = loc.color || '#6366f1'
-    // Deep copy the array to avoid reference issues
     editForm.storage_paths = loc.storage_paths ? [...loc.storage_paths] : []
     isEditOpen.value = true
 }
 
 const submitUpdate = () => {
-    editForm.put(`/physical-locations/${selectedLocationId.value}`, {
+    editForm.put(`/physical-locations/${selectedLocation.value.id}`, {
         onSuccess: () => {
             isEditOpen.value = false
         }
     })
 }
 
-const deleteLocation = (id: number) => {
-    if (confirm('Are you sure? This will remove this location mapping.')) {
-        router.delete(`/physical-locations/${id}`)
-    }
+const openDelete = (loc: any) => {
+    selectedLocation.value = loc
+    isDeleteOpen.value = true
+}
+
+const confirmDelete = () => {
+    if (!selectedLocation.value) return
+    router.delete(`/physical-locations/${selectedLocation.value.id}`, {
+        onSuccess: () => {
+            isDeleteOpen.value = false
+            selectedLocation.value = null
+        }
+    })
 }
 </script>
 
@@ -80,8 +97,10 @@ const deleteLocation = (id: number) => {
                         <Button><Plus class="mr-2 h-4 w-4" /> Add Location</Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-[450px]">
-                        <DialogHeader><DialogTitle>New Location</DialogTitle></DialogHeader>
-                        <form @submit.prevent="submitCreate" class="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle>New Location</DialogTitle>
+                        </DialogHeader>
+                        <form @submit.prevent="submitCreate" class="space-y-4 pt-4">
                             <div class="flex gap-4">
                                 <div class="flex-1">
                                     <Label>Room Name</Label>
@@ -94,7 +113,6 @@ const deleteLocation = (id: number) => {
                             </div>
                             <div class="space-y-2">
                                 <Label>Internal Storage Units</Label>
-
                                 <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                                     <div v-for="(_, i) in createForm.storage_paths" :key="i" class="flex gap-2">
                                         <Input v-model="createForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
@@ -106,12 +124,13 @@ const deleteLocation = (id: number) => {
                                         No paths added yet.
                                     </div>
                                 </div>
-
                                 <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(createForm)">
                                     <Plus class="h-3 w-3 mr-1" /> Add Path
                                 </Button>
                             </div>
-                            <Button type="submit" class="w-full" :disabled="createForm.processing">Create Map</Button>
+                            <DialogFooter class="pt-4">
+                                <Button type="submit" class="w-full" :disabled="createForm.processing">Create Map</Button>
+                            </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
@@ -128,7 +147,7 @@ const deleteLocation = (id: number) => {
                                 <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-8 w-8 text-slate-400 hover:text-indigo-600">
                                     <Pencil class="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" @click="deleteLocation(loc.id)" class="h-8 w-8 text-slate-400 hover:text-destructive">
+                                <Button variant="ghost" size="icon" @click="openDelete(loc)" class="h-8 w-8 text-slate-400 hover:text-destructive">
                                     <Trash2 class="h-4 w-4" />
                                 </Button>
                             </div>
@@ -147,8 +166,10 @@ const deleteLocation = (id: number) => {
 
             <Dialog v-model:open="isEditOpen">
                 <DialogContent class="sm:max-w-[450px]">
-                    <DialogHeader><DialogTitle>Edit Location: {{ editForm.name }}</DialogTitle></DialogHeader>
-                    <form @submit.prevent="submitUpdate" class="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>Edit Location: {{ selectedLocation?.name }}</DialogTitle>
+                    </DialogHeader>
+                    <form @submit.prevent="submitUpdate" class="space-y-4 pt-4">
                         <div class="flex gap-4">
                             <div class="flex-1">
                                 <Label>Room Name</Label>
@@ -161,7 +182,6 @@ const deleteLocation = (id: number) => {
                         </div>
                         <div class="space-y-2">
                             <Label>Internal Storage Units</Label>
-
                             <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                                 <div v-for="(_, i) in editForm.storage_paths" :key="i" class="flex gap-2">
                                     <Input v-model="editForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
@@ -170,23 +190,41 @@ const deleteLocation = (id: number) => {
                                     </Button>
                                 </div>
                             </div>
-
                             <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(editForm)">
                                 <Plus class="h-3 w-3 mr-1" /> Add Path
                             </Button>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter class="pt-4">
                              <Button type="submit" class="w-full" :disabled="editForm.processing">Save Changes</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog v-model:open="isDeleteOpen">
+                <DialogContent class="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+                            <AlertTriangle class="h-6 w-6 text-red-600" />
+                        </div>
+                        <DialogTitle class="text-center text-xl">Confirm Deletion</DialogTitle>
+                        <DialogDescription class="text-center pt-2">
+                            Are you sure you want to delete <span class="font-bold text-foreground">"{{ selectedLocation?.name }}"</span>?
+                            This action will remove the location mapping and cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter class="flex sm:justify-center gap-2 pt-4">
+                        <Button variant="outline" @click="isDeleteOpen = false" class="flex-1">Cancel</Button>
+                        <Button variant="destructive" @click="confirmDelete" class="flex-1">Yes, Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     </AppLayout>
 </template>
 
 <style scoped>
-/* Slim, modern scrollbar for the internal storage units */
 .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
 }
@@ -194,10 +232,10 @@ const deleteLocation = (id: number) => {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #e2e8f0; /* slate-200 */
+    background: #e2e8f0;
     border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #cbd5e1; /* slate-300 */
+    background: #cbd5e1;
 }
 </style>

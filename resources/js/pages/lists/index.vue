@@ -10,7 +10,9 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter
 } from '@/components/ui/dialog'
 import { type BreadcrumbItem } from '@/types'
 import { dashboard } from '@/routes'
@@ -19,7 +21,8 @@ import {
     Pencil,
     Trash2,
     CheckCircle2,
-    X
+    X,
+    AlertTriangle
 } from 'lucide-vue-next'
 import { ref } from 'vue'
 
@@ -39,19 +42,22 @@ const props = defineProps<{
     }>
 }>()
 
+/* Modal States */
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
+
 const editingList = ref<any>(null)
+const listToDelete = ref<any>(null)
 const deletingListId = ref<number | null>(null)
 
-/* Create Form */
+/* Forms */
 const createForm = useForm({
     name: '',
-    color: '#6366f1', // Default Indigo
+    color: '#6366f1',
     requirements: [] as string[]
 })
 
-/* Edit Form */
 const editForm = useForm({
     id: 0,
     name: '',
@@ -59,6 +65,7 @@ const editForm = useForm({
     requirements: [] as string[]
 })
 
+/* Requirement Helpers */
 const addRequirement = (form: any) => {
     form.requirements.push('')
 }
@@ -67,6 +74,7 @@ const removeRequirement = (form: any, index: number) => {
     form.requirements.splice(index, 1)
 }
 
+/* Actions */
 const openEditDialog = (list: any) => {
     editingList.value = list
     editForm.id = list.id
@@ -74,6 +82,11 @@ const openEditDialog = (list: any) => {
     editForm.color = list.color || '#6366f1'
     editForm.requirements = list.requirements ? [...list.requirements] : []
     isEditDialogOpen.value = true
+}
+
+const openDeleteDialog = (list: any) => {
+    listToDelete.value = list
+    isDeleteDialogOpen.value = true
 }
 
 const createList = () => {
@@ -96,11 +109,16 @@ const updateList = () => {
     })
 }
 
-const deleteList = (listId: number) => {
-    if (!confirm('Are you sure you want to delete the list?')) return
-    deletingListId.value = listId
-    router.delete(`/lists/${listId}`, {
-        onFinish: () => deletingListId.value = null
+const confirmDelete = () => {
+    if (!listToDelete.value) return
+
+    deletingListId.value = listToDelete.value.id
+    router.delete(`/lists/${listToDelete.value.id}`, {
+        onFinish: () => {
+            deletingListId.value = null
+            isDeleteDialogOpen.value = false
+            listToDelete.value = null
+        }
     })
 }
 </script>
@@ -137,9 +155,7 @@ const deleteList = (listId: number) => {
                                     </div>
                                     <div class="col-span-1 space-y-2">
                                         <Label>Color</Label>
-                                        <div class="flex items-center gap-2">
-                                            <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer" />
-                                        </div>
+                                        <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer" />
                                     </div>
                                 </div>
 
@@ -155,9 +171,6 @@ const deleteList = (listId: number) => {
                                         <Button type="button" variant="outline" size="sm" class="w-full mt-2" @click="addRequirement(createForm)">
                                             <Plus class="h-3 w-3 mr-2" /> Add Item
                                         </Button>
-                                        <p v-if="createForm.requirements.length === 0" class="text-center text-xs text-muted-foreground py-2 italic">
-                                            No requirements added yet.
-                                        </p>
                                     </div>
                                 </div>
                             </form>
@@ -175,9 +188,7 @@ const deleteList = (listId: number) => {
             <div v-if="lists.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card v-for="list in lists" :key="list.id" class="flex flex-col h-[380px] shadow-sm hover:shadow-md transition-shadow border-t-4" :style="{ borderTopColor: list.color || '#6366f1' }">
                     <CardHeader class="pb-3 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <CardTitle class="text-lg truncate">{{ list.name }}</CardTitle>
-                        </div>
+                        <CardTitle class="text-lg truncate">{{ list.name }}</CardTitle>
                     </CardHeader>
 
                     <CardContent class="flex-1 flex flex-col min-h-0 pt-0">
@@ -202,7 +213,7 @@ const deleteList = (listId: number) => {
                             <Button variant="outline" size="sm" @click="openEditDialog(list)" class="shrink-0 hover:bg-slate-100">
                                 <Pencil class="h-4 w-4" />
                             </Button>
-                            <Button variant="destructive" size="sm" @click="deleteList(list.id)" :disabled="deletingListId === list.id" class="shrink-0">
+                            <Button variant="destructive" size="sm" @click="openDeleteDialog(list)" class="shrink-0">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
                         </div>
@@ -252,9 +263,38 @@ const deleteList = (listId: number) => {
 
                     <div class="p-6 border-t bg-slate-50/50">
                         <Button type="submit" form="editForm" class="w-full" :disabled="editForm.processing">
-                            Update Checklist
+                            {{ editForm.processing ? 'Updating...' : 'Update Checklist' }}
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog v-model:open="isDeleteDialogOpen">
+                <DialogContent class="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+                            <AlertTriangle class="h-6 w-6 text-red-600" />
+                        </div>
+                        <DialogTitle class="text-center">Delete Employment Type</DialogTitle>
+                        <DialogDescription class="text-center pt-2">
+                            Are you sure you want to delete <span class="font-bold text-foreground">"{{ listToDelete?.name }}"</span>?
+                            This action cannot be undone and may affect associated employee records.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <DialogFooter class="sm:justify-center gap-2 pt-4">
+                        <Button variant="outline" @click="isDeleteDialogOpen = false" class="flex-1">
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            @click="confirmDelete"
+                            :disabled="!!deletingListId"
+                            class="flex-1"
+                        >
+                            {{ deletingListId ? 'Deleting...' : 'Yes, Delete' }}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
