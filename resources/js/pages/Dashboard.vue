@@ -59,18 +59,18 @@ const getPercentage = (count: number) => {
 
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight text-indigo-950">Archive Analytics</h1>
-                    <p class="text-sm text-slate-500 font-medium italic">Live distribution and recently archived records.</p>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight text-indigo-950">Dashboard</h1>
+                    <p class="text-sm text-slate-500 font-medium italic">Overview of your Folder management statistics.</p>
                 </div>
                 <div class="flex gap-2">
                     <Link href="/files">
                         <Button variant="outline" class="bg-white border-slate-200 text-indigo-950 shadow-sm">
-                            Manage Records
+                            Manage Folder
                         </Button>
                     </Link>
                     <Link href="/physical-locations">
                         <Button class="bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-md">
-                            Physical Map
+                            Locations
                         </Button>
                     </Link>
                 </div>
@@ -82,7 +82,7 @@ const getPercentage = (count: number) => {
                         <FileStack class="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Records</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Folders</p>
                         <p class="text-2xl font-bold text-slate-900 leading-none">{{ stats.totalFiles }}</p>
                     </div>
                 </div>
@@ -92,7 +92,7 @@ const getPercentage = (count: number) => {
                         <Layers class="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">File Lists</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employment Types</p>
                         <p class="text-2xl font-bold text-slate-900 leading-none">{{ stats.totalLists }}</p>
                     </div>
                 </div>
@@ -102,7 +102,7 @@ const getPercentage = (count: number) => {
                         <HardDrive class="h-6 w-6 text-emerald-600" />
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Storage Rooms</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
                         <p class="text-2xl font-bold text-slate-900 leading-none">{{ stats.totalLocations }}</p>
                     </div>
                 </div>
