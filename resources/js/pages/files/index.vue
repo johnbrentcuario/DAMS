@@ -275,14 +275,14 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <Label>Category</Label>
+                    <Label>Employment Type</Label>
                     <select v-model="createForm.list_id" :class="selectStyle" required>
                     <option value="">Select Type</option>
                     <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
                     </select>
                 </div>
                 <div class="space-y-2">
-                    <Label>Physical Office</Label>
+                    <Label>Location</Label>
                     <select v-model="createForm.physical_location_id" :class="selectStyle">
                     <option value="">None / External</option>
                     <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
@@ -315,7 +315,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
         <CardContent class="grid md:grid-cols-3 gap-4 pt-6">
           <Input v-model="search" placeholder="Search by name..." />
           <select v-model="listId" :class="selectStyle">
-            <option value="">All Categories</option>
+            <option value="">All Employment Types</option>
             <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
           </select>
           <div class="flex items-center">
@@ -333,7 +333,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               <thead class="bg-muted/40 border-b">
                 <tr>
                   <th class="p-4 text-left font-semibold pl-6">Full Name</th>
-                  <th class="p-4 text-left font-semibold">Category</th>
+                  <th class="p-4 text-left font-semibold">Employment Type</th>
                   <th class="p-4 text-left font-semibold">Location</th> <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
                   <th class="p-4 text-center font-semibold w-40">Actions</th>
                 </tr>
@@ -403,13 +403,13 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <Label>Category</Label>
+                    <Label>Employment Type</Label>
                     <select v-model="editForm.list_id" :class="selectStyle" required>
                     <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
                     </select>
                 </div>
                 <div class="space-y-2">
-                    <Label>Physical Office</Label>
+                    <Label>Location</Label>
                     <select v-model="editForm.physical_location_id" :class="selectStyle">
                         <option value="">None / External</option>
                         <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
@@ -511,7 +511,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 <p class="font-semibold text-lg">{{ viewingFile.fullname }}</p>
               </div>
               <div class="space-y-1">
-                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Category</Label>
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Employment Type</Label>
                 <div class="flex items-center gap-2">
                   <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: viewingFile.list?.color }"></div>
                   <p class="font-medium">{{ viewingFile.list?.name }}</p>
@@ -520,7 +520,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             </div>
 
             <div class="space-y-1">
-                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Physical Home</Label>
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
                 <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
                   <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
                   <div>
@@ -528,7 +528,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                       <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
                   </div>
                 </div>
-                <p v-else class="text-sm italic text-muted-foreground">Not assigned to a physical office.</p>
+                <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
             </div>
 
             <div class="space-y-1">

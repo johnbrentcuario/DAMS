@@ -68,6 +68,8 @@ const deleteLocation = (id: number) => {
 </script>
 
 <template>
+    <Head title="Physical Archive Map" />
+
     <AppLayout>
         <div class="p-6 space-y-6">
             <div class="flex justify-between items-center">
@@ -78,7 +80,7 @@ const deleteLocation = (id: number) => {
                         <Button><Plus class="mr-2 h-4 w-4" /> Add Location</Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-[450px]">
-                        <DialogHeader><DialogTitle>New Physical Location</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>New Location</DialogTitle></DialogHeader>
                         <form @submit.prevent="submitCreate" class="space-y-4">
                             <div class="flex gap-4">
                                 <div class="flex-1">
@@ -92,13 +94,20 @@ const deleteLocation = (id: number) => {
                             </div>
                             <div class="space-y-2">
                                 <Label>Internal Storage Units</Label>
-                                <div v-for="(_, i) in createForm.storage_paths" :key="i" class="flex gap-2">
-                                    <Input v-model="createForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
-                                    <Button type="button" variant="ghost" size="icon" @click="removePath(createForm, i)" class="text-destructive">
-                                        <X class="h-4 w-4" />
-                                    </Button>
+
+                                <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                    <div v-for="(_, i) in createForm.storage_paths" :key="i" class="flex gap-2">
+                                        <Input v-model="createForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
+                                        <Button type="button" variant="ghost" size="icon" @click="removePath(createForm, i)" class="text-destructive shrink-0">
+                                            <X class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div v-if="createForm.storage_paths.length === 0" class="text-xs text-center text-slate-400 py-4 border-2 border-dashed rounded-md">
+                                        No paths added yet.
+                                    </div>
                                 </div>
-                                <Button type="button" variant="outline" class="w-full text-xs" @click="addPath(createForm)">
+
+                                <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(createForm)">
                                     <Plus class="h-3 w-3 mr-1" /> Add Path
                                 </Button>
                             </div>
@@ -152,13 +161,17 @@ const deleteLocation = (id: number) => {
                         </div>
                         <div class="space-y-2">
                             <Label>Internal Storage Units</Label>
-                            <div v-for="(_, i) in editForm.storage_paths" :key="i" class="flex gap-2">
-                                <Input v-model="editForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
-                                <Button type="button" variant="ghost" size="icon" @click="removePath(editForm, i)" class="text-destructive">
-                                    <X class="h-4 w-4" />
-                                </Button>
+
+                            <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                <div v-for="(_, i) in editForm.storage_paths" :key="i" class="flex gap-2">
+                                    <Input v-model="editForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
+                                    <Button type="button" variant="ghost" size="icon" @click="removePath(editForm, i)" class="text-destructive shrink-0">
+                                        <X class="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
-                            <Button type="button" variant="outline" class="w-full text-xs" @click="addPath(editForm)">
+
+                            <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(editForm)">
                                 <Plus class="h-3 w-3 mr-1" /> Add Path
                             </Button>
                         </div>
@@ -171,3 +184,20 @@ const deleteLocation = (id: number) => {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+/* Slim, modern scrollbar for the internal storage units */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0; /* slate-200 */
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1; /* slate-300 */
+}
+</style>

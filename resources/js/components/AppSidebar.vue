@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, List } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, List, MapPin } from 'lucide-vue-next';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -16,7 +16,6 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
-
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -31,7 +30,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Locations',
         href: '/physical-locations',
-        icon: List,
+        icon: MapPin,
     },
     {
         title: 'Folder',

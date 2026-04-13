@@ -133,7 +133,7 @@ const deleteList = (listId: number) => {
                                 <div class="grid grid-cols-4 gap-4">
                                     <div class="col-span-3 space-y-2">
                                         <Label>Name</Label>
-                                        <Input v-model="createForm.name" placeholder="e.g. Regular" required />
+                                        <Input v-model="createForm.name" placeholder="e.g. Permanent" required />
                                     </div>
                                     <div class="col-span-1 space-y-2">
                                         <Label>Color</Label>
@@ -252,7 +252,7 @@ const deleteList = (listId: number) => {
 
                     <div class="p-6 border-t bg-slate-50/50">
                         <Button type="submit" form="editForm" class="w-full" :disabled="editForm.processing">
-                            Update Type
+                            Update Checklist
                         </Button>
                     </div>
                 </DialogContent>
