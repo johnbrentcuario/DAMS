@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
-import { ref, computed } from 'vue' // Added computed for path logic
+import { ref, computed } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 
 import { Button } from '@/components/ui/button'
@@ -31,14 +31,13 @@ import {
   FileText,
   XCircle,
   RotateCcw,
-  MapPin, // NEW
-  Archive // NEW
+  MapPin,
+  Archive
 } from 'lucide-vue-next'
 
 /* =======================
     Constants & Types
 ======================= */
-// NEW: Location Interface
 interface PhysicalLocation {
   id: number
   name: string
@@ -51,8 +50,8 @@ interface FileRecord {
   fullname: string
   description?: string
   list_id: number
-  physical_location_id?: number // NEW
-  physical_path?: string        // NEW
+  physical_location_id?: number
+  physical_path?: string
   attachments: Record<string, string>
   list: {
     id: number
@@ -60,7 +59,7 @@ interface FileRecord {
     color?: string
     requirements?: string[]
   }
-  physical_location?: PhysicalLocation // NEW
+  physical_location?: PhysicalLocation
 }
 
 interface FileList {
@@ -79,7 +78,7 @@ interface PaginationFiles {
 const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
-  physical_locations: PhysicalLocation[] // NEW: Expected from Controller
+  physical_locations: PhysicalLocation[]
   filters: { search?: string; list_id?: string }
 }>()
 
@@ -111,10 +110,11 @@ const clearFilters = () => {
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
 const isViewDialogOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
 
 const editingFile = ref<FileRecord | null>(null)
 const viewingFile = ref<FileRecord | null>(null)
-const deletingFileId = ref<number | null>(null)
+const deletingFileRecord = ref<FileRecord | null>(null)
 
 const pendingUploads = ref<Record<string, File>>({})
 const pendingDeletions = ref<string[]>([])
@@ -122,9 +122,9 @@ const pendingDeletions = ref<string[]>([])
 const createForm = useForm({
   fullname: '',
   description: '',
-  list_id: '',
-  physical_location_id: '' as number | '', // NEW
-  physical_path: ''                         // NEW
+  list_id: '' as number | '',
+  physical_location_id: '' as number | '',
+  physical_path: ''
 })
 
 const editForm = useForm({
@@ -132,8 +132,8 @@ const editForm = useForm({
   fullname: '',
   description: '',
   list_id: '' as number | '',
-  physical_location_id: '' as number | '', // NEW
-  physical_path: '',                        // NEW
+  physical_location_id: '' as number | '',
+  physical_path: '',
   new_attachments: {} as Record<string, File>,
   delete_attachments: [] as string[]
 })
@@ -141,16 +141,14 @@ const editForm = useForm({
 /* =======================
     Location Logic (Computed)
 ======================= */
-// Filters the available paths based on which Office is selected in Create Form
 const availableCreatePaths = computed(() => {
-    const loc = props.physical_locations?.find(l => l.id === createForm.physical_location_id);
-    return loc ? loc.storage_paths : [];
+  const loc = props.physical_locations?.find(l => l.id === createForm.physical_location_id);
+  return loc ? loc.storage_paths : [];
 });
 
-// Filters the available paths based on which Office is selected in Edit Form
 const availableEditPaths = computed(() => {
-    const loc = props.physical_locations?.find(l => l.id === editForm.physical_location_id);
-    return loc ? loc.storage_paths : [];
+  const loc = props.physical_locations?.find(l => l.id === editForm.physical_location_id);
+  return loc ? loc.storage_paths : [];
 });
 
 /* =======================
@@ -166,18 +164,20 @@ const openEditDialog = (file: FileRecord) => {
   editForm.fullname = file.fullname
   editForm.description = file.description || ''
   editForm.list_id = file.list_id
-
-  // NEW: Populate physical location fields
   editForm.physical_location_id = file.physical_location_id || ''
   editForm.physical_path = file.physical_path || ''
-
   pendingUploads.value = {}
   pendingDeletions.value = []
   isEditDialogOpen.value = true
 }
 
+const openDeleteModal = (file: FileRecord) => {
+  deletingFileRecord.value = file
+  isDeleteDialogOpen.value = true
+}
+
 /* =======================
-    File Logic (Existing)
+    File Logic
 ======================= */
 const handleFileUploadLocal = (event: Event, requirement: string) => {
   const target = event.target as HTMLInputElement;
@@ -237,10 +237,15 @@ const updateFile = () => {
   })
 }
 
-const deleteFileRecord = (id: number) => {
-  if (!confirm('Permanently delete this personnel record?')) return
-  deletingFileId.value = id
-  router.delete(`/files/${id}`, { onFinish: () => deletingFileId.value = null })
+const confirmDeletion = () => {
+  if (!deletingFileRecord.value) return
+  router.delete(`/files/${deletingFileRecord.value.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      isDeleteDialogOpen.value = false
+      deletingFileRecord.value = null
+    }
+  })
 }
 
 const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none transition-shadow";
@@ -275,26 +280,26 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <Label>Employment Type</Label>
-                    <select v-model="createForm.list_id" :class="selectStyle" required>
+                  <Label>Employment Type</Label>
+                  <select v-model="createForm.list_id" :class="selectStyle" required>
                     <option value="">Select Type</option>
                     <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
-                    </select>
+                  </select>
                 </div>
                 <div class="space-y-2">
-                    <Label>Location</Label>
-                    <select v-model="createForm.physical_location_id" :class="selectStyle">
+                  <Label>Location</Label>
+                  <select v-model="createForm.physical_location_id" :class="selectStyle">
                     <option value="">None / External</option>
                     <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
-                    </select>
+                  </select>
                 </div>
               </div>
 
               <div v-if="createForm.physical_location_id" class="space-y-2 animate-in fade-in slide-in-from-top-1">
                 <Label>Storage Unit / Drawer</Label>
                 <select v-model="createForm.physical_path" :class="selectStyle" required>
-                    <option value="">Select Location</option>
-                    <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
+                  <option value="">Select Location</option>
+                  <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
 
@@ -334,7 +339,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 <tr>
                   <th class="p-4 text-left font-semibold pl-6">Full Name</th>
                   <th class="p-4 text-left font-semibold">Employment Type</th>
-                  <th class="p-4 text-left font-semibold">Location</th> <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
+                  <th class="p-4 text-left font-semibold">Location</th>
+                  <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
                   <th class="p-4 text-center font-semibold w-40">Actions</th>
                 </tr>
               </thead>
@@ -349,13 +355,13 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   </td>
                   <td class="p-4">
                     <div v-if="file.physical_location" class="flex flex-col">
-                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                            <MapPin class="h-3 w-3" :style="{ color: file.physical_location.color }" />
-                            {{ file.physical_location.name }}
-                        </div>
-                        <div class="text-[10px] text-muted-foreground pl-4 flex items-center gap-1">
-                            <Archive class="h-2.5 w-2.5" /> {{ file.physical_path || 'Main Room' }}
-                        </div>
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                        <MapPin class="h-3 w-3" :style="{ color: file.physical_location.color }" />
+                        {{ file.physical_location.name }}
+                      </div>
+                      <div class="text-[10px] text-muted-foreground pl-4 flex items-center gap-1">
+                        <Archive class="h-2.5 w-2.5" /> {{ file.physical_path || 'Main Room' }}
+                      </div>
                     </div>
                     <span v-else class="text-xs text-muted-foreground italic">No mapping</span>
                   </td>
@@ -370,9 +376,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                       <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8 hover:bg-muted">
                         <Edit2 class="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" @click="deleteFileRecord(file.id)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
-                        <Loader2 v-if="deletingFileId === file.id" class="h-4 w-4 animate-spin" />
-                        <Trash2 v-else class="h-4 w-4" />
+                      <Button variant="ghost" size="icon" @click="openDeleteModal(file)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
+                        <Trash2 class="h-4 w-4" />
                       </Button>
                     </div>
                   </td>
@@ -403,25 +408,25 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <Label>Employment Type</Label>
-                    <select v-model="editForm.list_id" :class="selectStyle" required>
+                  <Label>Employment Type</Label>
+                  <select v-model="editForm.list_id" :class="selectStyle" required>
                     <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
-                    </select>
+                  </select>
                 </div>
                 <div class="space-y-2">
-                    <Label>Location</Label>
-                    <select v-model="editForm.physical_location_id" :class="selectStyle">
-                        <option value="">None / External</option>
-                        <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
-                    </select>
+                  <Label>Location</Label>
+                  <select v-model="editForm.physical_location_id" :class="selectStyle">
+                    <option value="">None / External</option>
+                    <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+                  </select>
                 </div>
               </div>
 
               <div v-if="editForm.physical_location_id" class="space-y-2">
                 <Label>Specific Storage Path</Label>
                 <select v-model="editForm.physical_path" :class="selectStyle" required>
-                    <option value="">Select Location</option>
-                    <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
+                  <option value="">Select Location</option>
+                  <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
 
@@ -520,15 +525,15 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             </div>
 
             <div class="space-y-1">
-                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
-                <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
-                  <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
-                  <div>
-                      <p class="font-medium text-slate-800">{{ viewingFile.physical_location.name }}</p>
-                      <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
-                  </div>
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
+              <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
+                <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
+                <div>
+                  <p class="font-medium text-slate-800">{{ viewingFile.physical_location.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
                 </div>
-                <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
+              </div>
+              <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
             </div>
 
             <div class="space-y-1">
@@ -559,6 +564,28 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </div>
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog v-model:open="isDeleteDialogOpen">
+        <DialogContent class="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle class="flex items-center gap-2">
+              <XCircle class="h-5 w-5 text-destructive" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription class="py-3">
+              Are you sure you want to delete the record for
+              <span class="font-bold text-slate-900">{{ deletingFileRecord?.fullname }}</span>?
+              This action cannot be undone and all associated attachments will be removed.
+            </DialogDescription>
+          </DialogHeader>
+          <div class="flex justify-end gap-3 mt-4">
+            <Button variant="outline" @click="isDeleteDialogOpen = false">Cancel</Button>
+            <Button variant="destructive" @click="confirmDeletion">
+              <Trash2 class="h-4 w-4 mr-2" /> Delete Record
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
