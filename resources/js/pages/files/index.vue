@@ -259,7 +259,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight text-slate-900">Personnel Files</h1>
+          <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Personnel Files</h1>
           <p class="text-muted-foreground">{{ files.total }} Records Found</p>
         </div>
 
@@ -385,14 +385,22 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               </tbody>
             </table>
           </div>
-          <div class="p-4 border-t flex items-center justify-between bg-muted/5">
-            <div class="flex gap-1">
-              <Link v-for="link in files.links" :key="link.label" :href="link.url || '#'" v-html="link.label"
-                class="px-3 py-1.5 border rounded-md text-xs font-medium"
-                :class="{ 'bg-primary text-white border-primary': link.active, 'opacity-40 pointer-events-none': !link.url }"
-              />
-            </div>
-          </div>
+          <div class="p-4 border-t dark:border-slate-800 flex items-center justify-between bg-muted/5">
+  <div class="flex gap-1">
+    <Link
+      v-for="link in files.links"
+      :key="link.label"
+      :href="link.url || '#'"
+      v-html="link.label"
+      class="px-3 py-1.5 border dark:border-slate-700 rounded-md text-xs font-medium transition-colors"
+      :class="{
+        'bg-primary text-primary-foreground border-primary': link.active,
+        'text-foreground hover:bg-muted': !link.active && link.url,
+        'opacity-40 pointer-events-none': !link.url
+      }"
+    />
+  </div>
+</div>
         </CardContent>
       </Card>
 

@@ -90,13 +90,16 @@ const confirmDelete = () => {
     <AppLayout>
         <div class="p-6 space-y-6">
             <div class="flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Physical Archive Map</h1>
+                <div>
+                    <h1 class="text-3xl font-bold text-foreground tracking-tight">Physical Archive Map</h1>
+                    <p class="text-muted-foreground">Define physical storage rooms and their internal filing structures.</p>
+                </div>
 
                 <Dialog v-model:open="isCreateOpen">
                     <DialogTrigger as-child>
                         <Button><Plus class="mr-2 h-4 w-4" /> Add Location</Button>
                     </DialogTrigger>
-                    <DialogContent class="sm:max-w-[450px]">
+                    <DialogContent class="sm:max-w-[450px] dark:bg-slate-900">
                         <DialogHeader>
                             <DialogTitle>New Location</DialogTitle>
                         </DialogHeader>
@@ -104,27 +107,27 @@ const confirmDelete = () => {
                             <div class="flex gap-4">
                                 <div class="flex-1">
                                     <Label>Room Name</Label>
-                                    <Input v-model="createForm.name" placeholder="e.g., Storage Room" required />
+                                    <Input v-model="createForm.name" placeholder="e.g., Storage Room" required class="dark:bg-slate-950" />
                                 </div>
                                 <div class="w-20">
                                     <Label>Color</Label>
-                                    <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer" />
+                                    <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer dark:bg-slate-950" />
                                 </div>
                             </div>
                             <div class="space-y-2">
                                 <Label>Internal Storage Units</Label>
                                 <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                                     <div v-for="(_, i) in createForm.storage_paths" :key="i" class="flex gap-2">
-                                        <Input v-model="createForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
+                                        <Input v-model="createForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" class="dark:bg-slate-950" />
                                         <Button type="button" variant="ghost" size="icon" @click="removePath(createForm, i)" class="text-destructive shrink-0">
                                             <X class="h-4 w-4" />
                                         </Button>
                                     </div>
-                                    <div v-if="createForm.storage_paths.length === 0" class="text-xs text-center text-slate-400 py-4 border-2 border-dashed rounded-md">
+                                    <div v-if="createForm.storage_paths.length === 0" class="text-xs text-center text-muted-foreground py-4 border-2 border-dashed rounded-md bg-muted/20">
                                         No paths added yet.
                                     </div>
                                 </div>
-                                <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(createForm)">
+                                <Button type="button" variant="outline" class="w-full text-xs mt-2 dark:border-slate-700" @click="addPath(createForm)">
                                     <Plus class="h-3 w-3 mr-1" /> Add Path
                                 </Button>
                             </div>
@@ -137,27 +140,30 @@ const confirmDelete = () => {
             </div>
 
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card v-for="loc in locations" :key="loc.id" class="border-t-4 transition-all hover:shadow-lg" :style="{ borderTopColor: loc.color }">
+                <Card v-for="loc in locations" :key="loc.id"
+                    class="bg-card dark:bg-slate-900 border-t-4 transition-all hover:shadow-lg dark:border-slate-800"
+                    :style="{ borderTopColor: loc.color }">
                     <CardHeader class="pb-3">
-                        <CardTitle class="flex items-center justify-between text-xl italic">
+                        <CardTitle class="flex items-center justify-between text-xl italic text-foreground">
                             <div class="flex items-center gap-2">
                                 <MapPin class="h-5 w-5" :style="{ color: loc.color }" /> {{ loc.name }}
                             </div>
                             <div class="flex gap-1">
-                                <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-8 w-8 text-slate-400 hover:text-indigo-600">
+                                <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-8 w-8 text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400">
                                     <Pencil class="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" @click="openDelete(loc)" class="h-8 w-8 text-slate-400 hover:text-destructive">
+                                <Button variant="ghost" size="icon" @click="openDelete(loc)" class="h-8 w-8 text-muted-foreground hover:text-destructive">
                                     <Trash2 class="h-4 w-4" />
                                 </Button>
                             </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <div v-for="path in loc.storage_paths" :key="path" class="text-sm bg-slate-50 p-2 rounded-md border flex items-center gap-2">
-                            <Archive class="h-3.5 w-3.5 text-slate-400" /> {{ path }}
+                        <div v-for="path in loc.storage_paths" :key="path"
+                            class="text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md border border-slate-100 dark:border-slate-700 flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                            <Archive class="h-3.5 w-3.5 text-muted-foreground" /> {{ path }}
                         </div>
-                        <div v-if="!loc.storage_paths?.length" class="text-xs italic text-center text-slate-400 py-6 border-2 border-dashed rounded-lg">
+                        <div v-if="!loc.storage_paths?.length" class="text-xs italic text-center text-muted-foreground py-6 border-2 border-dashed rounded-lg bg-muted/10">
                             No storage units defined.
                         </div>
                     </CardContent>
@@ -165,7 +171,7 @@ const confirmDelete = () => {
             </div>
 
             <Dialog v-model:open="isEditOpen">
-                <DialogContent class="sm:max-w-[450px]">
+                <DialogContent class="sm:max-w-[450px] dark:bg-slate-900">
                     <DialogHeader>
                         <DialogTitle>Edit Location: {{ selectedLocation?.name }}</DialogTitle>
                     </DialogHeader>
@@ -173,24 +179,24 @@ const confirmDelete = () => {
                         <div class="flex gap-4">
                             <div class="flex-1">
                                 <Label>Room Name</Label>
-                                <Input v-model="editForm.name" required />
+                                <Input v-model="editForm.name" required class="dark:bg-slate-950" />
                             </div>
                             <div class="w-20">
                                 <Label>Color</Label>
-                                <Input type="color" v-model="editForm.color" class="h-10 p-1 cursor-pointer" />
+                                <Input type="color" v-model="editForm.color" class="h-10 p-1 cursor-pointer dark:bg-slate-950" />
                             </div>
                         </div>
                         <div class="space-y-2">
                             <Label>Internal Storage Units</Label>
                             <div class="max-h-[250px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                                 <div v-for="(_, i) in editForm.storage_paths" :key="i" class="flex gap-2">
-                                    <Input v-model="editForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" />
+                                    <Input v-model="editForm.storage_paths[i]" placeholder="Drawer Name > Drawer #" class="dark:bg-slate-950" />
                                     <Button type="button" variant="ghost" size="icon" @click="removePath(editForm, i)" class="text-destructive shrink-0">
                                         <X class="h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>
-                            <Button type="button" variant="outline" class="w-full text-xs mt-2" @click="addPath(editForm)">
+                            <Button type="button" variant="outline" class="w-full text-xs mt-2 dark:border-slate-700" @click="addPath(editForm)">
                                 <Plus class="h-3 w-3 mr-1" /> Add Path
                             </Button>
                         </div>
@@ -202,24 +208,22 @@ const confirmDelete = () => {
             </Dialog>
 
             <Dialog v-model:open="isDeleteOpen">
-                <DialogContent class="sm:max-w-[400px]">
+                <DialogContent class="sm:max-w-[400px] dark:bg-slate-900">
                     <DialogHeader>
-                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
-                            <AlertTriangle class="h-6 w-6 text-red-600" />
+                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                            <AlertTriangle class="h-6 w-6 text-red-600 dark:text-red-400" />
                         </div>
                         <DialogTitle class="text-center text-xl">Confirm Deletion</DialogTitle>
                         <DialogDescription class="text-center pt-2">
                             Are you sure you want to delete <span class="font-bold text-foreground">"{{ selectedLocation?.name }}"</span>?
-                            This action will remove the location mapping and cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter class="flex sm:justify-center gap-2 pt-4">
-                        <Button variant="outline" @click="isDeleteOpen = false" class="flex-1">Cancel</Button>
+                        <Button variant="outline" @click="isDeleteOpen = false" class="flex-1 dark:border-slate-700">Cancel</Button>
                         <Button variant="destructive" @click="confirmDelete" class="flex-1">Yes, Delete</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
         </div>
     </AppLayout>
 </template>
@@ -232,10 +236,10 @@ const confirmDelete = () => {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #e2e8f0;
+    background: hsl(var(--muted-foreground) / 0.2);
     border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #cbd5e1;
+    background: hsl(var(--muted-foreground) / 0.4);
 }
 </style>
