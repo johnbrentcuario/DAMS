@@ -317,7 +317,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
       </div>
 
       <Card class="shadow-sm border-muted">
-        <CardContent class="grid md:grid-cols-3 gap-4 pt-6">
+        <CardContent class="grid md:grid-cols-3 gap-4 pt-1">
           <Input v-model="search" placeholder="Search by name..." />
           <select v-model="listId" :class="selectStyle">
             <option value="">All Employment Types</option>

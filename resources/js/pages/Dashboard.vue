@@ -52,7 +52,7 @@
     </script>
 
     <template>
-        <Head title="Analytics" />
+        <Head title="Dashboard" />
 
         <AppLayout :breadcrumbs="breadcrumbs">
             <div class="flex flex-1 flex-col gap-8 p-8 bg-slate-50/50 dark:bg-slate-950/50 transition-colors duration-300">
