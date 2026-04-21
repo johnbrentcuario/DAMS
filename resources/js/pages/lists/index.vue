@@ -27,8 +27,8 @@ import {
 import { ref } from 'vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Employment Type', href: '/lists' }
+    // { title: 'Dashboard', href: dashboard().url },
+    // { title: 'Employment Type', href: '/lists' }
 ]
 
 const props = defineProps<{
