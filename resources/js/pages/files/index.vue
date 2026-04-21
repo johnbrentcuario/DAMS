@@ -72,6 +72,8 @@ interface FileList {
 interface PaginationFiles {
   data: FileRecord[]
   total: number
+  current_page: number // Added for numbering logic
+  per_page: number     // Added for numbering logic
   links: { url: string | null; label: string; active: boolean }[]
 }
 
@@ -337,7 +339,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             <table class="w-full text-sm">
               <thead class="bg-muted/40 border-b">
                 <tr>
-                  <th class="p-4 text-left font-semibold pl-6">Full Name</th>
+                  <th class="p-4 text-left font-semibold pl-6 w-12">No.</th>
+                  <th class="p-4 text-left font-semibold">Full Name</th>
                   <th class="p-4 text-left font-semibold">Employment Type</th>
                   <th class="p-4 text-left font-semibold">Location</th>
                   <th class="p-4 text-left font-semibold hidden lg:table-cell">Remarks</th>
@@ -345,8 +348,11 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </tr>
               </thead>
               <tbody class="divide-y">
-                <tr v-for="file in files.data" :key="file.id" class="hover:bg-muted/10 transition-colors group">
-                  <td class="p-4 font-medium pl-6">{{ file.fullname }}</td>
+                <tr v-for="(file, index) in files.data" :key="file.id" class="hover:bg-muted/10 transition-colors group">
+                  <td class="p-4 pl-6 text-muted-foreground font-mono text-xs">
+                    {{ (props.files.current_page - 1) * props.files.per_page + index + 1 }}
+                  </td>
+                  <td class="p-4 font-medium">{{ file.fullname }}</td>
                   <td class="p-4">
                     <div class="flex items-center gap-2">
                       <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
