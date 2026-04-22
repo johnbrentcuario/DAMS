@@ -23,6 +23,11 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
+        title: 'Folder',
+        href: '/files',
+        icon: Folder,
+    },
+    {
         title: 'Employment Types',
         href: '/lists',
         icon: List,
@@ -31,11 +36,6 @@ const mainNavItems: NavItem[] = [
         title: 'Locations',
         href: '/physical-locations',
         icon: MapPin,
-    },
-    {
-        title: 'Folder',
-        href: '/files',
-        icon: Folder,
     },
 ];
 

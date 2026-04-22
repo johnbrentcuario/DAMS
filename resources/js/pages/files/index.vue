@@ -32,7 +32,8 @@ import {
   XCircle,
   RotateCcw,
   MapPin,
-  Archive
+  Archive,
+  ArrowUpDown
 } from 'lucide-vue-next'
 
 /* =======================
@@ -72,8 +73,8 @@ interface FileList {
 interface PaginationFiles {
   data: FileRecord[]
   total: number
-  current_page: number // Added for numbering logic
-  per_page: number     // Added for numbering logic
+  current_page: number
+  per_page: number
   links: { url: string | null; label: string; active: boolean }[]
 }
 
@@ -81,7 +82,7 @@ const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
   physical_locations: PhysicalLocation[]
-  filters: { search?: string; list_id?: string }
+  filters: { search?: string; list_id?: string; sort?: string }
 }>()
 
 /* =======================
@@ -89,13 +90,15 @@ const props = defineProps<{
 ======================= */
 const search = ref(props.filters.search || '')
 const listId = ref(props.filters.list_id || '')
+const sort = ref(props.filters.sort || 'asc') // Added alphabetical sort state
 
 watchDebounced(
-  [search, listId],
+  [search, listId, sort],
   () => {
     router.get('/files', {
       search: search.value || undefined,
-      list_id: listId.value || undefined
+      list_id: listId.value || undefined,
+      sort: sort.value || undefined
     }, { preserveState: true, preserveScroll: true, replace: true })
   },
   { debounce: 300 }
@@ -104,6 +107,7 @@ watchDebounced(
 const clearFilters = () => {
   search.value = ''
   listId.value = ''
+  sort.value = 'asc'
 }
 
 /* =======================
@@ -319,14 +323,23 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
       </div>
 
       <Card class="shadow-sm border-muted">
-        <CardContent class="grid md:grid-cols-3 gap-4 pt-1">
+        <CardContent class="grid md:grid-cols-4 gap-4 pt-1">
           <Input v-model="search" placeholder="Search by name..." />
+
           <select v-model="listId" :class="selectStyle">
             <option value="">All Employment Types</option>
             <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
           </select>
+
+          <div class="relative">
+            <select v-model="sort" :class="selectStyle">
+              <option value="asc">Name (A-Z)</option>
+              <option value="desc">Name (Z-A)</option>
+            </select>
+          </div>
+
           <div class="flex items-center">
-            <Button v-if="search || listId" variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive">
+            <Button v-if="search || listId || sort !== 'asc'" variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive">
               <FilterX class="h-4 w-4 mr-2" /> Reset Filters
             </Button>
           </div>
@@ -392,21 +405,21 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             </table>
           </div>
           <div class="p-4 border-t dark:border-slate-800 flex items-center justify-between bg-muted/5">
-  <div class="flex gap-1">
-    <Link
-      v-for="link in files.links"
-      :key="link.label"
-      :href="link.url || '#'"
-      v-html="link.label"
-      class="px-3 py-1.5 border dark:border-slate-700 rounded-md text-xs font-medium transition-colors"
-      :class="{
-        'bg-primary text-primary-foreground border-primary': link.active,
-        'text-foreground hover:bg-muted': !link.active && link.url,
-        'opacity-40 pointer-events-none': !link.url
-      }"
-    />
-  </div>
-</div>
+            <div class="flex gap-1">
+              <Link
+                v-for="link in files.links"
+                :key="link.label"
+                :href="link.url || '#'"
+                v-html="link.label"
+                class="px-3 py-1.5 border dark:border-slate-700 rounded-md text-xs font-medium transition-colors"
+                :class="{
+                  'bg-primary text-primary-foreground border-primary': link.active,
+                  'text-foreground hover:bg-muted': !link.active && link.url,
+                  'opacity-40 pointer-events-none': !link.url
+                }"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
