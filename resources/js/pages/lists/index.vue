@@ -23,7 +23,9 @@ import {
     X,
     AlertTriangle,
     Folder,
-    Lock
+    Lock,
+    Eye,
+    ExternalLink
 } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
 
@@ -44,9 +46,11 @@ const props = defineProps<{
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
+const isViewDialogOpen = ref(false)
 
 const editingList = ref<any>(null)
 const listToDelete = ref<any>(null)
+const viewList = ref<any>(null)
 const deletingListId = ref<number | null>(null)
 
 /* Computed check to see if deletion is allowed */
@@ -78,6 +82,11 @@ const removeRequirement = (form: any, index: number) => {
 }
 
 /* Actions */
+const openViewDialog = (list: any) => {
+    viewList.value = list
+    isViewDialogOpen.value = true
+}
+
 const openEditDialog = (list: any) => {
     editingList.value = list
     editForm.id = list.id
@@ -219,9 +228,9 @@ const confirmDelete = () => {
                         </div>
 
                         <div class="flex gap-1.5 mt-3 pt-3 border-t dark:border-slate-800 shrink-0">
-                            <Link :href="`/files?list_id=${list.id}`" class="flex-1">
-                                <Button variant="outline" size="sm" class="w-full h-8 text-xs dark:border-slate-700">View Files</Button>
-                            </Link>
+                            <Button variant="outline" size="sm" @click="openViewDialog(list)" class="flex-1 h-8 text-xs dark:border-slate-700">
+                                <Eye class="h-3.5 w-3.5 mr-1" /> View
+                            </Button>
                             <Button variant="outline" size="icon" @click="openEditDialog(list)" class="h-8 w-8 shrink-0 hover:bg-muted dark:border-slate-700">
                                 <Pencil class="h-3.5 w-3.5" />
                             </Button>
@@ -236,6 +245,52 @@ const confirmDelete = () => {
             <div v-else class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl bg-muted/20 dark:border-slate-800">
                  <p class="text-muted-foreground">No employment types found.</p>
             </div>
+
+            <Dialog v-model:open="isViewDialogOpen">
+                <DialogContent class="sm:max-w-[400px] dark:bg-slate-900">
+                    <DialogHeader>
+                        <div class="flex items-center gap-2 mb-2">
+                             <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: viewList?.color }"></div>
+                             <DialogTitle>{{ viewList?.name }}</DialogTitle>
+                        </div>
+                        <DialogDescription class="text-xs">
+                            Checking configuration and requirements for this role.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="space-y-4 py-4">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                            <div class="flex items-center gap-2 text-sm font-medium">
+                                <Folder class="h-4 w-4 text-muted-foreground" />
+                                Total Files
+                            </div>
+                            <span class="text-lg font-bold">{{ viewList?.files_count || 0 }}</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label class="text-[10px] uppercase tracking-wider text-muted-foreground">Required Document Checklist</Label>
+                            <div class="border rounded-md divide-y dark:divide-slate-800 bg-background overflow-hidden">
+                                <div v-for="req in viewList?.requirements" :key="req" class="p-2.5 text-sm flex items-center gap-3">
+                                    <CheckCircle2 class="h-4 w-4 shrink-0" :style="{ color: viewList?.color }" />
+                                    {{ req }}
+                                </div>
+                                <div v-if="!viewList?.requirements?.length" class="p-4 text-center text-xs text-muted-foreground italic">
+                                    No requirements defined for this type.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Link :href="`/files?list_id=${viewList?.id}`" class="w-full">
+                            <Button class="w-full">
+                                <ExternalLink class="h-4 w-4 mr-2" />
+                                Go to Folders
+                            </Button>
+                        </Link>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog v-model:open="isEditDialogOpen">
                 <DialogContent class="sm:max-w-[400px] max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-slate-900">
