@@ -98,7 +98,7 @@
                                             {{ list.name }}
                                         </span>
                                         <span class="text-slate-400 dark:text-slate-500 font-medium">
-                                            {{ list.files_count }} files ({{ getPercentage(list.files_count) }}%)
+                                            {{ list.files_count }} Folders ({{ getPercentage(list.files_count) }}%)
                                         </span>
                                     </div>
                                     <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">

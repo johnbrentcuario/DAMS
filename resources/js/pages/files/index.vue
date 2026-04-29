@@ -265,7 +265,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
 
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Personnel Files</h1>
+          <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Personnel Folder</h1>
           <p class="text-muted-foreground">{{ files.total }} Records Found</p>
         </div>
 
