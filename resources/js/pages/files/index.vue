@@ -41,7 +41,8 @@ import {
   MapPin,
   Archive,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  FileSearch
 } from 'lucide-vue-next'
 
 /* =======================
@@ -90,7 +91,7 @@ const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
   physical_locations: PhysicalLocation[]
-  filters: { search?: string; list_id?: string; sort?: string }
+  filters: { search?: string; list_id?: string; sort?: string; missing_requirement?: string }
 }>()
 
 /* =======================
@@ -98,14 +99,25 @@ const props = defineProps<{
 ======================= */
 const search = ref(props.filters.search || '')
 const listId = ref(props.filters.list_id || '')
+const missingRequirement = ref(props.filters.missing_requirement || '')
 const sort = ref(props.filters.sort || 'asc')
 
+// Generate a unique list of all requirements across all employment types for the filter dropdown
+const allPossibleRequirements = computed(() => {
+  const reqs = new Set<string>()
+  props.lists.forEach(list => {
+    list.requirements?.forEach(r => reqs.add(r))
+  })
+  return Array.from(reqs).sort()
+})
+
 watchDebounced(
-  [search, listId, sort],
+  [search, listId, sort, missingRequirement],
   () => {
     router.get('/files', {
       search: search.value || undefined,
       list_id: listId.value || undefined,
+      missing_requirement: missingRequirement.value || undefined,
       sort: sort.value || undefined
     }, { preserveState: true, preserveScroll: true, replace: true })
   },
@@ -115,6 +127,7 @@ watchDebounced(
 const clearFilters = () => {
   search.value = ''
   listId.value = ''
+  missingRequirement.value = ''
   sort.value = 'asc'
 }
 
@@ -362,25 +375,39 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
         </div>
 
         <Card class="shadow-sm border-muted">
-          <CardContent class="grid md:grid-cols-4 gap-4 pt-1">
+          <CardContent class="grid md:grid-cols-5 gap-4 pt-2 pb-2">
+            <!-- Search Name -->
             <Input v-model="search" placeholder="Search by name..." />
 
+            <!-- Filter Employment Type -->
             <select v-model="listId" :class="selectStyle">
               <option value="">All Employment Types</option>
               <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
             </select>
 
+            <!-- NEW: Filter Missing Specific File -->
             <div class="relative">
-              <select v-model="sort" :class="selectStyle">
-                <option value="asc">Name (A-Z)</option>
-                <option value="desc">Name (Z-A)</option>
+              <select v-model="missingRequirement" :class="selectStyle + ' text-destructive font-medium border-destructive/20 bg-destructive/[0.02]'">
+                <option value="" class="text-foreground">All Documents Present</option>
+                <optgroup label="Show Records Missing:">
+                  <option v-for="req in allPossibleRequirements" :key="req" :value="req">
+                    Missing: {{ req }}
+                  </option>
+                </optgroup>
               </select>
             </div>
 
+            <!-- Sort -->
+            <select v-model="sort" :class="selectStyle">
+              <option value="asc">Name (A-Z)</option>
+              <option value="desc">Name (Z-A)</option>
+            </select>
+
+            <!-- Reset -->
             <div class="flex items-center">
-              <Tooltip v-if="search || listId || sort !== 'asc'">
+              <Tooltip v-if="search || listId || missingRequirement || sort !== 'asc'">
                 <TooltipTrigger as-child>
-                  <Button variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive">
+                  <Button variant="ghost" @click="clearFilters" class="text-muted-foreground hover:text-destructive w-full md:w-auto">
                     <FilterX class="h-4 w-4 mr-2" /> Reset
                   </Button>
                 </TooltipTrigger>
@@ -389,6 +416,12 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
             </div>
           </CardContent>
         </Card>
+
+        <!-- Warning badge if missing filter is active -->
+        <div v-if="missingRequirement" class="bg-destructive/10 text-destructive px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-left-2">
+            <FileSearch class="h-4 w-4" />
+            Filtering personnel missing: <span class="underline decoration-2">{{ missingRequirement }}</span>
+        </div>
 
         <Card class="border-none shadow-sm overflow-hidden">
           <CardContent class="p-0">
@@ -433,7 +466,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </td>
                     <td class="p-4">
                       <div class="flex justify-center gap-1 opacity-90 group-hover:opacity-100">
-                        <!-- View Icon -->
                         <Tooltip>
                           <TooltipTrigger as-child>
                             <Button variant="ghost" size="icon" @click="openViewDialog(file)" class="h-8 w-8 text-blue-600 hover:bg-blue-50">
@@ -443,7 +475,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                           <TooltipContent>View Folder Details</TooltipContent>
                         </Tooltip>
 
-                        <!-- Edit Icon -->
                         <Tooltip>
                           <TooltipTrigger as-child>
                             <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8 hover:bg-muted">
@@ -453,7 +484,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                           <TooltipContent>Edit Record & Files</TooltipContent>
                         </Tooltip>
 
-                        <!-- Delete Icon -->
                         <Tooltip>
                           <TooltipTrigger as-child>
                             <Button variant="ghost" size="icon" @click="openDeleteModal(file)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -463,6 +493,11 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                           <TooltipContent>Delete Folder</TooltipContent>
                         </Tooltip>
                       </div>
+                    </td>
+                  </tr>
+                  <tr v-if="files.data.length === 0">
+                    <td colspan="6" class="p-12 text-center text-muted-foreground italic">
+                        No records found matching these filters.
                     </td>
                   </tr>
                 </tbody>
@@ -555,7 +590,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </div>
 
                     <div class="flex items-center gap-1">
-                      <!-- Action: View -->
                       <Tooltip v-if="getStatus(req) === 'exists'">
                         <TooltipTrigger as-child>
                           <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
@@ -567,7 +601,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         <TooltipContent>Open Document</TooltipContent>
                       </Tooltip>
 
-                      <!-- Action: Delete/Remove -->
                       <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                         <TooltipTrigger as-child>
                           <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -577,7 +610,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         <TooltipContent>Remove attachment</TooltipContent>
                       </Tooltip>
 
-                      <!-- Action: Restore -->
                       <Tooltip v-if="getStatus(req) === 'deleted'">
                         <TooltipTrigger as-child>
                           <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -587,7 +619,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         <TooltipContent>Restore original file</TooltipContent>
                       </Tooltip>
 
-                      <!-- Action: Upload/Replace -->
                       <div class="relative" v-if="getStatus(req) !== 'deleted'">
                         <input
                           :id="`edit-input-${req}`"
@@ -750,4 +781,3 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
     </AppLayout>
   </TooltipProvider>
 </template>
-

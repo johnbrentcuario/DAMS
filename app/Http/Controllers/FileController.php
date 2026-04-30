@@ -17,57 +17,66 @@ class FileController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request): Response
-{
-    $query = File::query()->with([
-        'list:id,name,color,requirements',
-        'physical_location'
-    ]);
+    {
+        $query = File::query()->with([
+            'list:id,name,color,requirements',
+            'physical_location'
+        ]);
 
-    // 1. Search filter
-    if ($request->filled('search')) {
-        $query->where(function ($q) use ($request) {
-            $q->where('fullname', 'like', '%' . $request->search . '%')
-              ->orWhere('description', 'like', '%' . $request->search . '%');
-        });
+        // 1. Search filter (Name or Description)
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('fullname', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // 2. Employment Type filter
+        if ($request->filled('list_id')) {
+            $query->where('list_id', $request->list_id);
+        }
+
+        /* |--------------------------------------------------------------------------
+        | 3. Global Missing Requirement Filter
+        |--------------------------------------------------------------------------
+        | This ignores the 'list' requirements and checks every folder to see
+        | if the specific key is absent from the attachments JSON.
+        */
+        if ($request->filled('missing_requirement')) {
+            $requirement = $request->missing_requirement;
+
+            $query->where(function($sub) use ($requirement) {
+                // Returns 0 if the path/key does not exist in the JSON object
+                $sub->whereRaw("JSON_CONTAINS_PATH(attachments, 'one', '$.\"$requirement\"') = 0")
+                    ->orWhereNull('attachments');
+            });
+        }
+
+        // 4. Default Alphabetical Sorting
+        $sortDirection = $request->get('sort', 'asc');
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+        $query->orderBy('fullname', $sortDirection);
+
+        // Paginate and keep filters in URL links
+        $files = $query->paginate(10)->withQueryString();
+
+        $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
+        $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
+
+        return Inertia::render('files/index', [
+            'files' => $files,
+            'lists' => $lists,
+            'physical_locations' => $physical_locations,
+            'filters' => [
+                'search' => $request->search,
+                'list_id' => $request->list_id,
+                'missing_requirement' => $request->missing_requirement,
+                'sort' => $sortDirection,
+            ],
+        ]);
     }
-
-    // 2. Employment Type filter
-    if ($request->filled('list_id')) {
-        $query->where('list_id', $request->list_id);
-    }
-
-    /* |--------------------------------------------------------------------------
-    | Default Alphabetical Sorting
-    |--------------------------------------------------------------------------
-    | We check the 'sort' parameter. If it's missing or null,
-    | we force it to 'asc' (A-Z).
-    */
-    $sortDirection = $request->get('sort', 'asc');
-
-    // Validate sort direction to prevent SQL injection or errors
-    if (!in_array($sortDirection, ['asc', 'desc'])) {
-        $sortDirection = 'asc';
-    }
-
-    $query->orderBy('fullname', $sortDirection);
-
-    // Paginate and preserve the 'sort' parameter in the URL links
-    $files = $query->paginate(10)->withQueryString();
-
-    $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
-    $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
-
-    return Inertia::render('files/index', [
-        'files' => $files,
-        'lists' => $lists,
-        'physical_locations' => $physical_locations,
-        'filters' => [
-            'search' => $request->search,
-            'list_id' => $request->list_id,
-            'sort' => $sortDirection, // This ensures the Vue dropdown stays on 'asc' by default
-        ],
-    ]);
-}
 
     /**
      * Store a newly created resource in storage.
@@ -105,7 +114,7 @@ class FileController extends Controller
 
         $attachments = $file->attachments ?? [];
 
-        // 1. Handle Deletions of specific documents
+        // Handle File Deletions
         if ($request->filled('delete_attachments')) {
             foreach ($request->delete_attachments as $reqName) {
                 if (isset($attachments[$reqName])) {
@@ -115,10 +124,10 @@ class FileController extends Controller
             }
         }
 
-        // 2. Handle New File Uploads
+        // Handle New File Uploads
         if ($request->hasFile('new_attachments')) {
             foreach ($request->file('new_attachments') as $reqName => $uploadedFile) {
-                // Remove old version if it exists before replacing
+                // If a file already exists for this requirement, delete the old physical file
                 if (isset($attachments[$reqName])) {
                     Storage::disk('public')->delete($attachments[$reqName]);
                 }
@@ -127,7 +136,6 @@ class FileController extends Controller
             }
         }
 
-        // 3. Update the database record
         $file->update([
             'fullname' => $validated['fullname'],
             'description' => $validated['description'],
@@ -145,7 +153,6 @@ class FileController extends Controller
      */
     public function destroy(File $file): RedirectResponse
     {
-        // Delete all physical files associated with this record before deleting the DB entry
         if ($file->attachments) {
             foreach ($file->attachments as $path) {
                 Storage::disk('public')->delete($path);
