@@ -2,16 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
-use App\Http\Controllers\DashboardController; // Import your new controller
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PhysicalLocationController;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    return redirect()->route('login');
 })->name('home');
 
 // CHANGE: Point this to the DashboardController class instead of an inline function
