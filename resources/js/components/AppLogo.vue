@@ -4,14 +4,17 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
 <template>
     <div
-        class="flex aspect-square size-10 items-center justify-center rounded-md bg-white shadow-sm"
+        class="flex aspect-square size-8 items-center justify-center rounded-md bg-white shadow-sm"
     >
-        <AppLogoIcon class="size-7 object-contain" />
+        <AppLogoIcon class="size-6 object-contain" />
     </div>
 
-    <div class="ml-3 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">
-            Inactive 201-Files
+    <div class="ml-3 flex flex-col justify-center">
+        <span class="text-sm font-bold leading-none tracking-wide">
+            D.A.M.S.
+        </span>
+        <span class="mt-1 text-[9px] font-medium leading-[1.1] text-slate-500 uppercase">
+            Digital Archive &<br />Mapping System
         </span>
     </div>
 </template>
