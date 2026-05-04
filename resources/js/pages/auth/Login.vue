@@ -41,20 +41,19 @@ defineProps<{
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email">ID Number</Label>
                     <Input
                         id="email"
-                        type="email"
+                        type="text"
                         name="email"
                         required
                         autofocus
                         :tabindex="1"
-                        autocomplete="email"
-                        placeholder="email@example.com"
+                        autocomplete="username"
+                        placeholder="ID number"
                     />
                     <InputError :message="errors.email" />
                 </div>
-
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
                         <Label for="password">Password</Label>
@@ -96,14 +95,6 @@ defineProps<{
                     <Spinner v-if="processing" />
                     Log in
                 </Button>
-            </div>
-
-            <div
-                class="text-center text-sm text-muted-foreground"
-                v-if="canRegister"
-            >
-                Don't have an account?
-                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
             </div>
         </Form>
     </AuthBase>
