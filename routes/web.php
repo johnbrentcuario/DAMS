@@ -21,7 +21,8 @@ Route::resource('lists', ListController::class);
 Route::resource('files', FileController::class);
 Route::resource('physical-locations', PhysicalLocationController::class);
 Route::resource('users', UsersController::class)
-    ->only(['index', 'store', 'update', 'destroy']);
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middleware(['auth', 'admin']);
 
 // Custom File Actions
 Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');

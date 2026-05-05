@@ -12,7 +12,7 @@ class UsersController extends Controller
 {
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'id_number', 'created_at')
+        $users = User::select('id', 'name', 'email', 'id_number', 'role', 'created_at')
             ->latest()
             ->paginate(15);
 
@@ -27,6 +27,7 @@ class UsersController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'id_number' => ['required', 'string', 'max:255', 'unique:users'],
+            'role'      => ['required', 'in:admin,staff'],
             'password'  => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -34,6 +35,7 @@ class UsersController extends Controller
             'name'      => $validated['name'],
             'email'     => $validated['email'],
             'id_number' => $validated['id_number'],
+            'role'      => $validated['role'],
             'password'  => Hash::make($validated['password']),
         ]);
 
@@ -46,6 +48,7 @@ class UsersController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'id_number' => ['required', 'string', 'max:255', 'unique:users,id_number,' . $user->id],
+            'role'      => ['required', 'in:admin,staff'],
             'password'  => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -53,6 +56,7 @@ class UsersController extends Controller
             'name'      => $validated['name'],
             'email'     => $validated['email'],
             'id_number' => $validated['id_number'],
+            'role'      => $validated['role'],
             ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
         ]);
 
@@ -61,7 +65,6 @@ class UsersController extends Controller
 
     public function destroy(User $user)
     {
-        // Prevent deleting your own account
         if ($user->id === auth()->id()) {
             return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
         }

@@ -3,14 +3,15 @@ import { ref, computed } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { Pencil, Trash2, Plus, X, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Head, Link } from '@inertiajs/vue3';
+import { Pencil, Trash2, Plus, X, Search } from 'lucide-vue-next';
 
 interface User {
     id: number;
     name: string;
     email: string;
     id_number: string;
+    role: 'admin' | 'staff';
     created_at: string;
 }
 
@@ -29,14 +30,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'User Management', href: '/users' },
 ];
 
-// Modal state
 const showModal = ref(false);
 const editingUser = ref<User | null>(null);
 const showDeleteConfirm = ref(false);
 const deletingUser = ref<User | null>(null);
-
-// Search
 const searchQuery = ref('');
+
 const filteredUsers = computed(() =>
     props.users.data.filter(u =>
         u.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -45,11 +44,11 @@ const filteredUsers = computed(() =>
     )
 );
 
-// Form
 const form = useForm({
     name: '',
     email: '',
     id_number: '',
+    role: 'staff' as 'admin' | 'staff',
     password: '',
     password_confirmation: '',
 });
@@ -57,6 +56,7 @@ const form = useForm({
 function openCreate() {
     editingUser.value = null;
     form.reset();
+    form.role = 'staff';
     form.clearErrors();
     showModal.value = true;
 }
@@ -66,6 +66,7 @@ function openEdit(user: User) {
     form.name = user.name;
     form.email = user.email;
     form.id_number = user.id_number;
+    form.role = user.role;
     form.password = '';
     form.password_confirmation = '';
     form.clearErrors();
@@ -122,9 +123,7 @@ function formatDate(dateStr: string) {
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">User Management</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {{ users.total }} total users
-                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ users.total }} total users</p>
                 </div>
                 <button
                     @click="openCreate"
@@ -162,13 +161,14 @@ function formatDate(dateStr: string) {
                             <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Name</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Email</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">ID Number</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Role</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Joined</th>
                             <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         <tr v-if="filteredUsers.length === 0">
-                            <td colspan="5" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">
+                            <td colspan="6" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">
                                 No users found.
                             </td>
                         </tr>
@@ -177,13 +177,23 @@ function formatDate(dateStr: string) {
                             :key="user.id"
                             class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                         >
-                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                {{ user.name }}
-                            </td>
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ user.name }}</td>
                             <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ user.email }}</td>
                             <td class="px-4 py-3">
                                 <span class="inline-block rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-mono text-gray-700 dark:text-gray-300">
                                     {{ user.id_number }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span
+                                    :class="[
+                                        'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                        user.role === 'admin'
+                                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                    ]"
+                                >
+                                    {{ user.role === 'admin' ? 'Admin' : 'Staff' }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ formatDate(user.created_at) }}</td>
@@ -192,14 +202,12 @@ function formatDate(dateStr: string) {
                                     <button
                                         @click="openEdit(user)"
                                         class="rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                                        title="Edit"
                                     >
                                         <Pencil class="h-4 w-4" />
                                     </button>
                                     <button
                                         @click="confirmDelete(user)"
                                         class="rounded-md p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                                        title="Delete"
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </button>
@@ -220,9 +228,7 @@ function formatDate(dateStr: string) {
                         :href="link.url ?? '#'"
                         :class="[
                             'px-3 py-1.5 rounded-md transition-colors',
-                            link.active
-                                ? 'bg-blue-600 text-white'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700',
+                            link.active ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
                             !link.url ? 'pointer-events-none opacity-40' : '',
                         ]"
                         v-html="link.label"
@@ -235,10 +241,7 @@ function formatDate(dateStr: string) {
         <!-- Create / Edit Modal -->
         <Teleport to="body">
             <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <!-- Backdrop -->
                 <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="closeModal" />
-
-                <!-- Modal -->
                 <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6">
                     <div class="flex items-center justify-between mb-5">
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -287,6 +290,20 @@ function formatDate(dateStr: string) {
                                 placeholder="EMP-0001"
                             />
                             <p v-if="form.errors.id_number" class="mt-1 text-xs text-red-500">{{ form.errors.id_number }}</p>
+                        </div>
+
+                        <!-- Role -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                            <select
+                                v-model="form.role"
+                                class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                :class="{ 'border-red-400': form.errors.role }"
+                            >
+                                <option value="staff">Staff</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <p v-if="form.errors.role" class="mt-1 text-xs text-red-500">{{ form.errors.role }}</p>
                         </div>
 
                         <!-- Password -->

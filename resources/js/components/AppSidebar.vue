@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { Folder, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -14,10 +15,13 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
+import { type NavItem, type AppPageProps } from '@/types';
 import AppLogo from './AppLogo.vue';
 
-const mainNavItems: NavItem[] = [
+const page = usePage<AppPageProps>();
+const isAdmin = computed(() => page.props.auth.user?.role === 'admin');
+
+const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -38,12 +42,12 @@ const mainNavItems: NavItem[] = [
         href: '/physical-locations',
         icon: MapPin,
     },
-    {
+    ...(isAdmin.value ? [{
         title: 'User Management',
         href: '/users',
         icon: Users,
-    },
-];
+    }] : []),
+]);
 </script>
 
 <template>
