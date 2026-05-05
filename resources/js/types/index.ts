@@ -10,5 +10,8 @@ export type AppPageProps<
     name: string;
     auth: Auth;
     sidebarOpen: boolean;
-    [key: string]: unknown;
+    flash: {
+        success?: string | null;
+        error?: string | null;
+    };
 };

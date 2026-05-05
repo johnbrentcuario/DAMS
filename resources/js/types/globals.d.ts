@@ -1,4 +1,7 @@
 import type { AppPageProps } from './index';
+import type { PageProps as InertiaPageProps } from '@inertiajs/core';
+import type { Page, Router } from '@inertiajs/core';
+import type { createHeadManager } from '@vueuse/head';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {

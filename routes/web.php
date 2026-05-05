@@ -6,12 +6,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PhysicalLocationController;
+use App\Http\Controllers\UsersController;
 
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-// CHANGE: Point this to the DashboardController class instead of an inline function
 Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
@@ -20,6 +20,8 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 Route::resource('lists', ListController::class);
 Route::resource('files', FileController::class);
 Route::resource('physical-locations', PhysicalLocationController::class);
+Route::resource('users', UsersController::class)
+    ->only(['index', 'store', 'update', 'destroy']);
 
 // Custom File Actions
 Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');
