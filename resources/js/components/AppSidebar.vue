@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Folder, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
+import { ClipboardList, Folder, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -42,11 +42,18 @@ const mainNavItems = computed<NavItem[]>(() => [
         href: '/physical-locations',
         icon: MapPin,
     },
-    ...(isAdmin.value ? [{
-        title: 'User Management',
-        href: '/users',
-        icon: Users,
-    }] : []),
+    ...(isAdmin.value ? [
+        {
+            title: 'User Management',
+            href: '/users',
+            icon: Users,
+        },
+        {
+            title: 'Activity Log',
+            href: '/activity-log',
+            icon: ClipboardList,
+        },
+    ] : []),
 ]);
 </script>
 

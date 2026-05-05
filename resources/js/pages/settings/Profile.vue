@@ -79,6 +79,19 @@ const user = page.props.auth.user;
                         <InputError class="mt-2" :message="errors.email" />
                     </div>
 
+                    <div class="grid gap-2">
+                        <Label for="id_number">ID Number</Label>
+                        <Input
+                            id="id_number"
+                            class="mt-1 block w-full bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                            name="id_number"
+                            :default-value="user.id_number"
+                            readonly
+                            disabled
+                        />
+                        <p class="text-xs text-muted-foreground">Your ID number can only be changed by an administrator.</p>
+                    </div>
+
                     <div v-if="mustVerifyEmail && !user.email_verified_at">
                         <p class="-mt-4 text-sm text-muted-foreground">
                             Your email address is unverified.
