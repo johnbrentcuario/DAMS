@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ClipboardList, Folder, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
+import { ClipboardList, Folder, FileBarChart2, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -52,6 +52,11 @@ const mainNavItems = computed<NavItem[]>(() => [
             title: 'Activity Log',
             href: '/activity-log',
             icon: ClipboardList,
+        },
+        {
+        title: 'Reports',
+        href: '/reports',
+        icon: FileBarChart2,
         },
     ] : []),
 ]);

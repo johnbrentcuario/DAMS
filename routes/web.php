@@ -8,6 +8,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\PhysicalLocationController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ReportsController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -27,6 +28,10 @@ Route::resource('users', UsersController::class)
 Route::get('activity-log', [ActivityLogController::class, 'index'])
     ->middleware(['auth', 'admin'])
     ->name('activity-log.index');
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [ReportsController::class, 'export'])->name('reports.export');
+});
 
 // Custom File Actions
 Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');
