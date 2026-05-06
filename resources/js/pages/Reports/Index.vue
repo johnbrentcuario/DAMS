@@ -5,7 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import {
     FileX, FileCheck, FolderOpen, Briefcase,
-    MapPin, ClipboardList, Users, Download, FileSpreadsheet, FileText
+    MapPin, ClipboardList, Users, FileSpreadsheet, FileText
 } from 'lucide-vue-next';
 
 interface List {
@@ -29,7 +29,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const loading = ref<string | null>(null);
 
-// Filter states per report
 const filters = ref({
     'missing-documents':  { list_id: '' },
     'complete-documents': { list_id: '' },
@@ -118,13 +117,7 @@ function download(type: string, format: 'excel' | 'pdf') {
         ),
     });
 
-    const url = `/reports/export?${params.toString()}`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.location.href = `/reports/export?${params.toString()}`;
 
     setTimeout(() => {
         loading.value = null;

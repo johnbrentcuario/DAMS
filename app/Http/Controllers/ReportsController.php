@@ -65,7 +65,7 @@ class ReportsController extends Controller
             return $this->streamExcel('missing-documents.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Missing Documents Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Missing Documents Report', $headings, array_map('array_values', $rows), 'missing-documents.pdf');
     }
 
     private function exportCompleteDocuments(Request $request, string $format)
@@ -94,7 +94,7 @@ class ReportsController extends Controller
             return $this->streamExcel('complete-documents.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Complete Documents Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Complete Documents Report', $headings, array_map('array_values', $rows), 'complete-documents.pdf');
     }
 
     private function exportFolderSummary(Request $request, string $format)
@@ -121,7 +121,7 @@ class ReportsController extends Controller
             return $this->streamExcel('folder-summary.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Folder Summary Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Folder Summary Report', $headings, array_map('array_values', $rows), 'folder-summary.pdf');
     }
 
     private function exportEmploymentTypes(string $format)
@@ -139,7 +139,7 @@ class ReportsController extends Controller
             return $this->streamExcel('employment-types.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Employment Type Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Employment Type Report', $headings, array_map('array_values', $rows), 'employment-types.pdf');
     }
 
     private function exportLocations(string $format)
@@ -156,7 +156,7 @@ class ReportsController extends Controller
             return $this->streamExcel('locations.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Location Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Location Report', $headings, array_map('array_values', $rows), 'locations.pdf');
     }
 
     private function exportActivityLog(Request $request, string $format)
@@ -184,7 +184,7 @@ class ReportsController extends Controller
             return $this->streamExcel('activity-log.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Activity Log Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('Activity Log Report', $headings, array_map('array_values', $rows), 'activity-log.pdf');
     }
 
     private function exportUsers(string $format)
@@ -203,7 +203,7 @@ class ReportsController extends Controller
             return $this->streamExcel('users.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('User Report', $headings, array_map('array_values', $rows));
+        return $this->streamPdf('User Report', $headings, array_map('array_values', $rows), 'users.pdf');
     }
 
     private function streamExcel(string $filename, array $headings, array $rows)
@@ -218,7 +218,7 @@ class ReportsController extends Controller
         }, $filename);
     }
 
-    private function streamPdf(string $title, array $headings, array $rows)
+    private function streamPdf(string $title, array $headings, array $rows, string $filename)
     {
         $pdf = Pdf::loadView('reports.default', [
             'title'    => $title,
@@ -226,6 +226,12 @@ class ReportsController extends Controller
             'rows'     => $rows,
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download(str()->slug($title) . '.pdf');
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+        ]);
     }
 }

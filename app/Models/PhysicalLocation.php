@@ -12,6 +12,11 @@ class PhysicalLocation extends Model
     protected $fillable = ['name', 'color', 'storage_paths'];
 
     protected $casts = [
-        'storage_paths' => 'array', // Crucial for handling the dynamic list
+        'storage_paths' => 'array',
     ];
+
+    public function files()
+    {
+        return $this->hasMany(File::class, 'physical_location_id');
+    }
 }
