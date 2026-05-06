@@ -83,7 +83,7 @@ class FileController extends Controller
         ActivityLogger::log(
             'created',
             'files',
-            "Created file \"{$file->fullname}\" | Employment Type: " . ($list?->name ?? 'None') .
+            "Created folder \"{$file->fullname}\" | Employment Type: " . ($list?->name ?? 'None') .
             " | Location: " . ($location?->name ?? 'None') .
             ($validated['physical_path'] ? " | Path: {$validated['physical_path']}" : '')
         );
@@ -170,7 +170,7 @@ class FileController extends Controller
         ActivityLogger::logChanges(
             'updated',
             'files',
-            "Updated file \"{$file->fullname}\"" . (!empty($extras) ? ' | ' . implode(' | ', $extras) : ''),
+            "Updated folder \"{$file->fullname}\"" . (!empty($extras) ? ' | ' . implode(' | ', $extras) : ''),
             $before,
             $after
         );
@@ -191,7 +191,7 @@ class FileController extends Controller
         ActivityLogger::log(
             'deleted',
             'files',
-            "Deleted file \"{$file->fullname}\" | Employment Type: " . ($file->list?->name ?? 'None') .
+            "Deleted folder \"{$file->fullname}\" | Employment Type: " . ($file->list?->name ?? 'None') .
             " | Location: " . ($file->physical_location?->name ?? 'None') .
             " | Attachments removed: {$attachmentList}"
         );
