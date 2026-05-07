@@ -18,7 +18,14 @@ Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+
+Route::post('/files/bulk-delete', [FileController::class, 'bulkDelete'])->name('files.bulk-delete');
+Route::post('/files/bulk-move', [FileController::class, 'bulkMove'])->name('files.bulk-move');
+Route::post('/files/bulk-change-type', [FileController::class, 'bulkChangeType'])->name('files.bulk-change-type');
+Route::get('/files/bulk-export', [FileController::class, 'bulkExport'])->name('files.bulk-export');
 // Resources
+
+
 Route::resource('lists', ListController::class);
 Route::resource('files', FileController::class);
 Route::resource('physical-locations', PhysicalLocationController::class);
@@ -36,6 +43,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Custom File Actions
 Route::post('/files/{file}/upload', [FileController::class, 'upload'])->name('files.upload');
 Route::delete('/files/{file}/upload', [FileController::class, 'removeAttachment'])->name('files.remove_upload');
+
+
 
 
 require __DIR__.'/settings.php';

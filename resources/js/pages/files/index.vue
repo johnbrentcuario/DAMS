@@ -26,23 +26,10 @@ import {
 import InputError from '@/components/InputError.vue'
 
 import {
-  Plus,
-  Loader2,
-  Trash2,
-  CheckCircle2,
-  Circle,
-  Edit2,
-  Eye,
-  FilterX,
-  FileUp,
-  FileText,
-  XCircle,
-  RotateCcw,
-  MapPin,
-  Archive,
-  RefreshCw,
-  AlertTriangle,
-  FileSearch
+  Plus, Loader2, Trash2, CheckCircle2, Circle, Edit2, Eye,
+  FilterX, FileUp, FileText, XCircle, RotateCcw, MapPin,
+  Archive, RefreshCw, AlertTriangle, FileSearch, Layers,
+  FileSpreadsheet, MoveRight, X, SquareCheck
 } from 'lucide-vue-next'
 
 /* =======================
@@ -102,7 +89,6 @@ const listId = ref(props.filters.list_id || '')
 const missingRequirement = ref(props.filters.missing_requirement || '')
 const sort = ref(props.filters.sort || 'asc')
 
-// Generate a unique list of all requirements across all employment types for the filter dropdown
 const allPossibleRequirements = computed(() => {
   const reqs = new Set<string>()
   props.lists.forEach(list => {
@@ -132,20 +118,116 @@ const clearFilters = () => {
 }
 
 /* =======================
+    Bulk Selection
+======================= */
+const selectedIds = ref<number[]>([])
+
+const allSelected = computed(() =>
+  props.files.data.length > 0 &&
+  props.files.data.every(f => selectedIds.value.includes(f.id))
+)
+
+const someSelected = computed(() =>
+  selectedIds.value.length > 0 && !allSelected.value
+)
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = props.files.data.map(f => f.id)
+  }
+}
+
+const toggleSelect = (id: number) => {
+  if (selectedIds.value.includes(id)) {
+    selectedIds.value = selectedIds.value.filter(i => i !== id)
+  } else {
+    selectedIds.value = [...selectedIds.value, id]
+  }
+}
+
+const clearSelection = () => {
+  selectedIds.value = []
+}
+
+/* =======================
+    Bulk Action Modals
+======================= */
+const isBulkDeleteOpen    = ref(false)
+const isBulkMoveOpen      = ref(false)
+const isBulkChangeTypeOpen = ref(false)
+
+const bulkMoveForm = useForm({
+  ids: [] as number[],
+  physical_location_id: '' as number | '',
+  physical_path: '',
+})
+
+const bulkChangeTypeForm = useForm({
+  ids: [] as number[],
+  list_id: '' as number | '',
+})
+
+const bulkAvailablePaths = computed(() => {
+  const loc = props.physical_locations.find(l => l.id === bulkMoveForm.physical_location_id)
+  return loc ? loc.storage_paths : []
+})
+
+const bulkDelete = () => {
+  router.post('/files/bulk-delete', { ids: selectedIds.value }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      isBulkDeleteOpen.value = false
+      selectedIds.value = []
+    }
+  })
+}
+
+const bulkMove = () => {
+  bulkMoveForm.ids = selectedIds.value
+  bulkMoveForm.post('/files/bulk-move', {
+    preserveScroll: true,
+    onSuccess: () => {
+      isBulkMoveOpen.value = false
+      bulkMoveForm.reset()
+      selectedIds.value = []
+    }
+  })
+}
+
+const bulkChangeType = () => {
+  bulkChangeTypeForm.ids = selectedIds.value
+  bulkChangeTypeForm.post('/files/bulk-change-type', {
+    preserveScroll: true,
+    onSuccess: () => {
+      isBulkChangeTypeOpen.value = false
+      bulkChangeTypeForm.reset()
+      selectedIds.value = []
+    }
+  })
+}
+
+const bulkExport = (format: 'pdf' | 'excel') => {
+  const ids = selectedIds.value.join(',')
+  window.location.href = `/files/bulk-export?ids=${ids}&format=${format}`
+}
+
+/* =======================
     Forms & State Management
 ======================= */
-const isCreateDialogOpen = ref(false)
-const isEditDialogOpen = ref(false)
-const isViewDialogOpen = ref(false)
-const isDeleteDialogOpen = ref(false)
+const isCreateDialogOpen    = ref(false)
+const isEditDialogOpen      = ref(false)
+const isViewDialogOpen      = ref(false)
+const isDeleteDialogOpen    = ref(false)
 const isOverwriteWarningOpen = ref(false)
 
-const editingFile = ref<FileRecord | null>(null)
-const viewingFile = ref<FileRecord | null>(null)
+const editingFile        = ref<FileRecord | null>(null)
+const viewingFile        = ref<FileRecord | null>(null)
 const deletingFileRecord = ref<FileRecord | null>(null)
 
-const overwriteData = ref<{ file: File, requirement: string } | null>(null)
-const pendingUploads = ref<Record<string, File>>({})
+const overwriteData   = ref<{ file: File, requirement: string } | null>(null)
+const pendingUploads  = ref<Record<string, File>>({})
 const pendingDeletions = ref<string[]>([])
 
 const createForm = useForm({
@@ -167,22 +249,16 @@ const editForm = useForm({
   delete_attachments: [] as string[]
 })
 
-/* =======================
-    Location Logic (Computed)
-======================= */
 const availableCreatePaths = computed(() => {
-  const loc = props.physical_locations?.find(l => l.id === createForm.physical_location_id);
-  return loc ? loc.storage_paths : [];
-});
+  const loc = props.physical_locations?.find(l => l.id === createForm.physical_location_id)
+  return loc ? loc.storage_paths : []
+})
 
 const availableEditPaths = computed(() => {
-  const loc = props.physical_locations?.find(l => l.id === editForm.physical_location_id);
-  return loc ? loc.storage_paths : [];
-});
+  const loc = props.physical_locations?.find(l => l.id === editForm.physical_location_id)
+  return loc ? loc.storage_paths : []
+})
 
-/* =======================
-    Dialog Actions
-======================= */
 const openViewDialog = (file: FileRecord) => {
   viewingFile.value = file
   isViewDialogOpen.value = true
@@ -205,71 +281,61 @@ const openDeleteModal = (file: FileRecord) => {
   isDeleteDialogOpen.value = true
 }
 
-/* =======================
-    File Logic
-======================= */
 const handleFileUploadLocal = (event: Event, requirement: string) => {
-  const target = event.target as HTMLInputElement;
-  if (!target.files?.length) return;
-
-  const file = target.files[0];
-  const hasExistingFile = editingFile.value?.attachments?.[requirement];
-  const hasPendingFile = pendingUploads.value[requirement];
-
+  const target = event.target as HTMLInputElement
+  if (!target.files?.length) return
+  const file = target.files[0]
+  const hasExistingFile = editingFile.value?.attachments?.[requirement]
+  const hasPendingFile  = pendingUploads.value[requirement]
   if (hasExistingFile || hasPendingFile) {
-    overwriteData.value = { file, requirement };
-    isOverwriteWarningOpen.value = true;
-    target.value = '';
-    return;
+    overwriteData.value = { file, requirement }
+    isOverwriteWarningOpen.value = true
+    target.value = ''
+    return
   }
-
-  processFileSelection(file, requirement);
-  target.value = '';
-};
+  processFileSelection(file, requirement)
+  target.value = ''
+}
 
 const confirmOverwrite = () => {
   if (overwriteData.value) {
-    processFileSelection(overwriteData.value.file, overwriteData.value.requirement);
-    isOverwriteWarningOpen.value = false;
-    overwriteData.value = null;
+    processFileSelection(overwriteData.value.file, overwriteData.value.requirement)
+    isOverwriteWarningOpen.value = false
+    overwriteData.value = null
   }
-};
+}
 
 const processFileSelection = (file: File, requirement: string) => {
-  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
   if (!allowedTypes.includes(file.type)) {
-    alert('Invalid file format. Only PDF, JPEG, and PNG are allowed.');
-    return;
+    alert('Invalid file format. Only PDF, JPEG, and PNG are allowed.')
+    return
   }
-
-  pendingUploads.value[requirement] = file;
-  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
+  pendingUploads.value[requirement] = file
+  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement)
 }
 
 const removeFileLocal = (requirement: string) => {
   if (pendingUploads.value[requirement]) {
-    delete pendingUploads.value[requirement];
+    delete pendingUploads.value[requirement]
   } else {
     if (!pendingDeletions.value.includes(requirement)) {
-      pendingDeletions.value.push(requirement);
+      pendingDeletions.value.push(requirement)
     }
   }
-};
+}
 
 const restoreFileLocal = (requirement: string) => {
-  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement);
-};
+  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement)
+}
 
 const getStatus = (req: string) => {
-  if (pendingDeletions.value.includes(req)) return 'deleted';
-  if (pendingUploads.value[req]) return 'new';
-  if (editingFile.value?.attachments?.[req]) return 'exists';
-  return 'empty';
-};
+  if (pendingDeletions.value.includes(req)) return 'deleted'
+  if (pendingUploads.value[req]) return 'new'
+  if (editingFile.value?.attachments?.[req]) return 'exists'
+  return 'empty'
+}
 
-/* =======================
-    Server Submissions
-======================= */
 const createFile = () => {
   createForm.post('/files', {
     onSuccess: () => {
@@ -281,15 +347,14 @@ const createFile = () => {
 
 const updateFile = () => {
   if (!editingFile.value) return
-  editForm.new_attachments = pendingUploads.value;
-  editForm.delete_attachments = pendingDeletions.value;
-
+  editForm.new_attachments    = pendingUploads.value
+  editForm.delete_attachments = pendingDeletions.value
   editForm.post(`/files/${editingFile.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
       isEditDialogOpen.value = false
       editForm.reset()
-      pendingUploads.value = {}
+      pendingUploads.value  = {}
       pendingDeletions.value = []
     }
   })
@@ -300,13 +365,13 @@ const confirmDeletion = () => {
   router.delete(`/files/${deletingFileRecord.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
-      isDeleteDialogOpen.value = false
-      deletingFileRecord.value = null
+      isDeleteDialogOpen.value  = false
+      deletingFileRecord.value  = null
     }
   })
 }
 
-const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none transition-shadow";
+const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none transition-shadow"
 </script>
 
 <template>
@@ -315,12 +380,12 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
     <AppLayout>
       <div class="p-6 space-y-6 w-full max-w-7xl mx-auto">
 
+        <!-- Header -->
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Personnel Folder</h1>
             <p class="text-muted-foreground">{{ files.total }} Records Found</p>
           </div>
-
           <Dialog v-model:open="isCreateDialogOpen">
             <DialogTrigger as-child>
               <Button size="lg" class="shadow-sm transition-all active:scale-95">
@@ -335,7 +400,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   <Input v-model="createForm.fullname" placeholder="Enter employee name" required />
                   <InputError :message="createForm.errors.fullname" />
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-2">
                     <Label>Employment Type</Label>
@@ -352,7 +416,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </select>
                   </div>
                 </div>
-
                 <div v-if="createForm.physical_location_id" class="space-y-2 animate-in fade-in slide-in-from-top-1">
                   <Label>Storage Unit / Drawer</Label>
                   <select v-model="createForm.physical_path" :class="selectStyle" required>
@@ -360,7 +423,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                   </select>
                 </div>
-
                 <div class="space-y-2">
                   <Label>Remarks</Label>
                   <textarea v-model="createForm.description" :class="selectStyle" class="min-h-[100px] resize-none" />
@@ -374,18 +436,14 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
           </Dialog>
         </div>
 
+        <!-- Filters -->
         <Card class="shadow-sm border-muted">
           <CardContent class="grid md:grid-cols-5 gap-4 pt-2 pb-2">
-            <!-- Search Name -->
             <Input v-model="search" placeholder="Search by name..." />
-
-            <!-- Filter Employment Type -->
             <select v-model="listId" :class="selectStyle">
               <option value="">All Employment Types</option>
               <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
             </select>
-
-            <!-- NEW: Filter Missing Specific File -->
             <div class="relative">
               <select v-model="missingRequirement" :class="selectStyle + ' text-destructive font-medium border-destructive/20 bg-destructive/[0.02]'">
                 <option value="" class="text-foreground">All Documents Present</option>
@@ -396,14 +454,10 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </optgroup>
               </select>
             </div>
-
-            <!-- Sort -->
             <select v-model="sort" :class="selectStyle">
               <option value="asc">Name (A-Z)</option>
               <option value="desc">Name (Z-A)</option>
             </select>
-
-            <!-- Reset -->
             <div class="flex items-center">
               <Tooltip v-if="search || listId || missingRequirement || sort !== 'asc'">
                 <TooltipTrigger as-child>
@@ -417,19 +471,82 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
           </CardContent>
         </Card>
 
-        <!-- Warning badge if missing filter is active -->
+        <!-- Missing filter warning -->
         <div v-if="missingRequirement" class="bg-destructive/10 text-destructive px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-left-2">
-            <FileSearch class="h-4 w-4" />
-            Filtering personnel missing: <span class="underline decoration-2">{{ missingRequirement }}</span>
+          <FileSearch class="h-4 w-4" />
+          Filtering personnel missing: <span class="underline decoration-2">{{ missingRequirement }}</span>
         </div>
 
+        <!-- Bulk Action Toolbar -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-to-class="opacity-0 -translate-y-2"
+        >
+          <div v-if="selectedIds.length > 0"
+            class="flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10"
+          >
+            <div class="flex items-center gap-2 mr-2">
+              <SquareCheck class="h-4 w-4 text-primary" />
+              <span class="text-sm font-semibold text-primary">{{ selectedIds.length }} selected</span>
+            </div>
+
+            <!-- Change Employment Type -->
+            <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs" @click="isBulkChangeTypeOpen = true">
+              <Layers class="h-3.5 w-3.5" />
+              Change Type
+            </Button>
+
+            <!-- Move Location -->
+            <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs" @click="isBulkMoveOpen = true">
+              <MoveRight class="h-3.5 w-3.5" />
+              Move Location
+            </Button>
+
+            <!-- Export Excel -->
+            <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" @click="bulkExport('excel')">
+              <FileSpreadsheet class="h-3.5 w-3.5" />
+              Export Excel
+            </Button>
+
+            <!-- Export PDF -->
+            <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-red-600 border-red-200 hover:bg-red-50" @click="bulkExport('pdf')">
+              <FileText class="h-3.5 w-3.5" />
+              Export PDF
+            </Button>
+
+            <!-- Delete -->
+            <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-destructive border-destructive/20 hover:bg-destructive/10" @click="isBulkDeleteOpen = true">
+              <Trash2 class="h-3.5 w-3.5" />
+              Delete
+            </Button>
+
+            <!-- Clear selection -->
+            <Button variant="ghost" size="sm" class="h-8 gap-1.5 text-xs text-muted-foreground ml-auto" @click="clearSelection">
+              <X class="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          </div>
+        </Transition>
+
+        <!-- Table -->
         <Card class="border-none shadow-sm overflow-hidden">
           <CardContent class="p-0">
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead class="bg-muted/40 border-b">
                   <tr>
-                    <th class="p-4 text-left font-semibold pl-6 w-12">No.</th>
+                    <th class="p-4 pl-6 w-10">
+                      <input
+                        type="checkbox"
+                        :checked="allSelected"
+                        :indeterminate="someSelected"
+                        @change="toggleSelectAll"
+                        class="rounded border-gray-300 cursor-pointer"
+                      />
+                    </th>
+                    <th class="p-4 text-left font-semibold w-12">No.</th>
                     <th class="p-4 text-left font-semibold">Full Name</th>
                     <th class="p-4 text-left font-semibold">Employment Type</th>
                     <th class="p-4 text-left font-semibold">Location</th>
@@ -438,8 +555,19 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   </tr>
                 </thead>
                 <tbody class="divide-y">
-                  <tr v-for="(file, index) in files.data" :key="file.id" class="hover:bg-muted/10 transition-colors group">
-                    <td class="p-4 pl-6 text-muted-foreground font-mono text-xs">
+                  <tr v-for="(file, index) in files.data" :key="file.id"
+                    class="hover:bg-muted/10 transition-colors group"
+                    :class="{ 'bg-primary/5': selectedIds.includes(file.id) }"
+                  >
+                    <td class="p-4 pl-6">
+                      <input
+                        type="checkbox"
+                        :checked="selectedIds.includes(file.id)"
+                        @change="toggleSelect(file.id)"
+                        class="rounded border-gray-300 cursor-pointer"
+                      />
+                    </td>
+                    <td class="p-4 text-muted-foreground font-mono text-xs">
                       {{ (props.files.current_page - 1) * props.files.per_page + index + 1 }}
                     </td>
                     <td class="p-4 font-medium">{{ file.fullname }}</td>
@@ -451,7 +579,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </td>
                     <td class="p-4">
                       <div v-if="file.physical_location" class="flex flex-col">
-                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                           <MapPin class="h-3 w-3" :style="{ color: file.physical_location.color }" />
                           {{ file.physical_location.name }}
                         </div>
@@ -474,7 +602,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                           </TooltipTrigger>
                           <TooltipContent>View Folder Details</TooltipContent>
                         </Tooltip>
-
                         <Tooltip>
                           <TooltipTrigger as-child>
                             <Button variant="ghost" size="icon" @click="openEditDialog(file)" class="h-8 w-8 hover:bg-muted">
@@ -483,7 +610,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                           </TooltipTrigger>
                           <TooltipContent>Edit Record & Files</TooltipContent>
                         </Tooltip>
-
                         <Tooltip>
                           <TooltipTrigger as-child>
                             <Button variant="ghost" size="icon" @click="openDeleteModal(file)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -496,8 +622,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </td>
                   </tr>
                   <tr v-if="files.data.length === 0">
-                    <td colspan="6" class="p-12 text-center text-muted-foreground italic">
-                        No records found matching these filters.
+                    <td colspan="7" class="p-12 text-center text-muted-foreground italic">
+                      No records found matching these filters.
                     </td>
                   </tr>
                 </tbody>
@@ -522,17 +648,101 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
           </CardContent>
         </Card>
 
+        <!-- BULK DELETE CONFIRM -->
+        <Dialog v-model:open="isBulkDeleteOpen">
+          <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle class="flex items-center gap-2">
+                <Trash2 class="h-5 w-5 text-destructive" />
+                Delete {{ selectedIds.length }} Folder(s)?
+              </DialogTitle>
+              <DialogDescription class="py-3">
+                This will permanently delete <span class="font-bold text-slate-900 dark:text-white">{{ selectedIds.length }}</span> folder(s) and all their attachments. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div class="flex justify-end gap-3 mt-2">
+              <Button variant="outline" @click="isBulkDeleteOpen = false">Cancel</Button>
+              <Button variant="destructive" @click="bulkDelete">
+                <Trash2 class="h-4 w-4 mr-2" /> Delete All
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <!-- BULK MOVE LOCATION -->
+        <Dialog v-model:open="isBulkMoveOpen">
+          <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle class="flex items-center gap-2">
+                <MoveRight class="h-5 w-5" />
+                Move {{ selectedIds.length }} Folder(s)
+              </DialogTitle>
+              <DialogDescription>Select a new physical location for the selected folders.</DialogDescription>
+            </DialogHeader>
+            <div class="space-y-4 pt-4">
+              <div class="space-y-2">
+                <Label>Location</Label>
+                <select v-model="bulkMoveForm.physical_location_id" :class="selectStyle">
+                  <option value="">None / External</option>
+                  <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+                </select>
+              </div>
+              <div v-if="bulkMoveForm.physical_location_id" class="space-y-2">
+                <Label>Storage Path</Label>
+                <select v-model="bulkMoveForm.physical_path" :class="selectStyle">
+                  <option value="">Select Path</option>
+                  <option v-for="path in bulkAvailablePaths" :key="path" :value="path">{{ path }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+              <Button variant="outline" @click="isBulkMoveOpen = false">Cancel</Button>
+              <Button @click="bulkMove" :disabled="bulkMoveForm.processing">
+                <Loader2 v-if="bulkMoveForm.processing" class="h-4 w-4 mr-2 animate-spin" />
+                Move Folders
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <!-- BULK CHANGE TYPE -->
+        <Dialog v-model:open="isBulkChangeTypeOpen">
+          <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle class="flex items-center gap-2">
+                <Layers class="h-5 w-5" />
+                Change Type for {{ selectedIds.length }} Folder(s)
+              </DialogTitle>
+              <DialogDescription>Select a new employment type for the selected folders.</DialogDescription>
+            </DialogHeader>
+            <div class="space-y-4 pt-4">
+              <div class="space-y-2">
+                <Label>Employment Type</Label>
+                <select v-model="bulkChangeTypeForm.list_id" :class="selectStyle" required>
+                  <option value="">Select Type</option>
+                  <option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+              <Button variant="outline" @click="isBulkChangeTypeOpen = false">Cancel</Button>
+              <Button @click="bulkChangeType" :disabled="bulkChangeTypeForm.processing || !bulkChangeTypeForm.list_id">
+                <Loader2 v-if="bulkChangeTypeForm.processing" class="h-4 w-4 mr-2 animate-spin" />
+                Update Type
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <!-- EDIT DIALOG -->
         <Dialog v-model:open="isEditDialogOpen">
           <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
             <DialogHeader class="p-6 pb-2 border-b">
               <DialogTitle>Edit Record & Files</DialogTitle>
             </DialogHeader>
-
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
               <form @submit.prevent="updateFile" id="edit-form" class="space-y-4">
                 <div class="space-y-2"><Label>Full Name</Label><Input v-model="editForm.fullname" required /></div>
-
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-2">
                     <Label>Employment Type</Label>
@@ -548,7 +758,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </select>
                   </div>
                 </div>
-
                 <div v-if="editForm.physical_location_id" class="space-y-2">
                   <Label>Specific Storage Path</Label>
                   <select v-model="editForm.physical_path" :class="selectStyle" required>
@@ -556,7 +765,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                   </select>
                 </div>
-
                 <div class="space-y-2"><Label>Remarks</Label><textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" /></div>
               </form>
 
@@ -567,7 +775,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   </h3>
                   <span class="text-[10px] text-muted-foreground uppercase font-bold">Changes will apply on save</span>
                 </div>
-
                 <div v-if="editingFile.list?.requirements?.length" class="grid gap-2">
                   <div v-for="req in editingFile.list.requirements" :key="req"
                     class="flex items-center justify-between p-3 rounded-lg border bg-card transition-all hover:border-muted-foreground/30"
@@ -581,14 +788,12 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                       <FileUp v-else-if="getStatus(req) === 'new'" class="h-5 w-5 text-blue-500 shrink-0 animate-pulse" />
                       <Trash2 v-else-if="getStatus(req) === 'deleted'" class="h-5 w-5 text-destructive shrink-0" />
                       <Circle v-else class="h-5 w-5 text-muted-foreground/30 shrink-0" />
-
                       <div class="flex flex-col overflow-hidden">
                         <span class="text-sm font-medium truncate">{{ req }}</span>
                         <span v-if="getStatus(req) === 'new'" class="text-[10px] text-blue-600 font-bold uppercase">Pending Upload</span>
                         <span v-if="getStatus(req) === 'deleted'" class="text-[10px] text-destructive font-bold uppercase">Marked for removal</span>
                       </div>
                     </div>
-
                     <div class="flex items-center gap-1">
                       <Tooltip v-if="getStatus(req) === 'exists'">
                         <TooltipTrigger as-child>
@@ -600,7 +805,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         </TooltipTrigger>
                         <TooltipContent>Open Document</TooltipContent>
                       </Tooltip>
-
                       <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                         <TooltipTrigger as-child>
                           <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -609,7 +813,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         </TooltipTrigger>
                         <TooltipContent>Remove attachment</TooltipContent>
                       </Tooltip>
-
                       <Tooltip v-if="getStatus(req) === 'deleted'">
                         <TooltipTrigger as-child>
                           <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -618,27 +821,12 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                         </TooltipTrigger>
                         <TooltipContent>Restore original file</TooltipContent>
                       </Tooltip>
-
                       <div class="relative" v-if="getStatus(req) !== 'deleted'">
-                        <input
-                          :id="`edit-input-${req}`"
-                          type="file"
-                          class="hidden"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          @change="handleFileUploadLocal($event, req)"
-                        />
+                        <input :id="`edit-input-${req}`" type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleFileUploadLocal($event, req)" />
                         <Tooltip>
                           <TooltipTrigger as-child>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              as-child
-                              :class="[
-                                'h-8 w-8 transition-all',
-                                (getStatus(req) === 'exists' || getStatus(req) === 'new')
-                                  ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50'
-                                  : 'text-muted-foreground hover:text-primary'
-                              ]"
+                            <Button variant="ghost" size="icon" as-child
+                              :class="['h-8 w-8 transition-all', (getStatus(req) === 'exists' || getStatus(req) === 'new') ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50' : 'text-muted-foreground hover:text-primary']"
                             >
                               <label :for="`edit-input-${req}`" class="cursor-pointer flex items-center justify-center">
                                 <RefreshCw v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'" class="h-4 w-4" />
@@ -654,7 +842,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </div>
               </div>
             </div>
-
             <div class="p-4 border-t flex justify-end gap-3 bg-muted/10">
               <Button variant="outline" @click="isEditDialogOpen = false">Cancel</Button>
               <Button type="submit" form="edit-form" :disabled="editForm.processing">
@@ -672,7 +859,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               <DialogTitle>Personnel Details</DialogTitle>
               <DialogDescription>Full record view and document status</DialogDescription>
             </DialogHeader>
-
             <div v-if="viewingFile" class="space-y-6 pt-4">
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1">
@@ -687,7 +873,6 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   </div>
                 </div>
               </div>
-
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
                 <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
@@ -699,19 +884,17 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 </div>
                 <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
               </div>
-
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Remarks</Label>
                 <p class="text-sm bg-muted/30 p-3 rounded-md italic border">
                   {{ viewingFile.description || 'No additional remarks provided.' }}
                 </p>
               </div>
-
               <div class="space-y-3">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Document Checklist</Label>
                 <div class="grid gap-2">
                   <div v-for="req in viewingFile.list?.requirements" :key="req"
-                       class="flex items-center justify-between p-3 border rounded-lg bg-background">
+                    class="flex items-center justify-between p-3 border rounded-lg bg-background">
                     <div class="flex items-center gap-3">
                       <CheckCircle2 v-if="viewingFile.attachments?.[req]" class="h-5 w-5 text-green-500" />
                       <XCircle v-else class="h-5 w-5 text-destructive/40" />
@@ -742,7 +925,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               </DialogTitle>
               <DialogDescription class="py-3">
                 Are you sure you want to delete the record for
-                <span class="font-bold text-slate-900">{{ deletingFileRecord?.fullname }}</span>?
+                <span class="font-bold text-slate-900 dark:text-white">{{ deletingFileRecord?.fullname }}</span>?
                 This action cannot be undone and all associated attachments will be removed.
               </DialogDescription>
             </DialogHeader>

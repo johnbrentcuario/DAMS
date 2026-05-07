@@ -6,11 +6,13 @@ use App\Models\File;
 use App\Models\FileList;
 use App\Models\PhysicalLocation;
 use App\Services\ActivityLogger;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\SimpleExcel\SimpleExcelWriter;
 
 class FileController extends Controller
 {
@@ -75,7 +77,7 @@ class FileController extends Controller
 
         $file = File::create($validated);
 
-        $list = FileList::find($validated['list_id']);
+        $list     = FileList::find($validated['list_id']);
         $location = $validated['physical_location_id']
             ? PhysicalLocation::find($validated['physical_location_id'])
             : null;
@@ -112,7 +114,7 @@ class FileController extends Controller
             'path'        => $file->physical_path ?? 'empty',
         ];
 
-        $attachments = $file->attachments ?? [];
+        $attachments  = $file->attachments ?? [];
         $deletedFiles = [];
         $uploadedFiles = [];
 
@@ -137,7 +139,7 @@ class FileController extends Controller
             }
         }
 
-        $newList = FileList::find($validated['list_id']);
+        $newList     = FileList::find($validated['list_id']);
         $newLocation = $validated['physical_location_id']
             ? PhysicalLocation::find($validated['physical_location_id'])
             : null;
@@ -199,5 +201,128 @@ class FileController extends Controller
         $file->delete();
 
         return redirect()->back()->with('success', 'Record deleted.');
+    }
+
+    // ─── Bulk Actions ─────────────────────────────────────────────────────────
+
+    public function bulkDelete(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array'],
+            'ids.*' => ['exists:files,id'],
+        ]);
+
+        $files = File::whereIn('id', $validated['ids'])->get();
+
+        foreach ($files as $file) {
+            if ($file->attachments) {
+                foreach ($file->attachments as $path) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+            ActivityLogger::log(
+                'deleted',
+                'files',
+                "Bulk deleted folder \"{$file->fullname}\" | Employment Type: " . ($file->list?->name ?? 'None') .
+                " | Location: " . ($file->physical_location?->name ?? 'None')
+            );
+            $file->delete();
+        }
+
+        return redirect()->back()->with('success', count($validated['ids']) . ' folder(s) deleted successfully.');
+    }
+
+    public function bulkMove(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'                  => ['required', 'array'],
+            'ids.*'                => ['exists:files,id'],
+            'physical_location_id' => ['nullable', 'exists:physical_locations,id'],
+            'physical_path'        => ['nullable', 'string'],
+        ]);
+
+        $location = $validated['physical_location_id']
+            ? PhysicalLocation::find($validated['physical_location_id'])
+            : null;
+
+        File::whereIn('id', $validated['ids'])->update([
+            'physical_location_id' => $validated['physical_location_id'] ?: null,
+            'physical_path'        => $validated['physical_path'] ?: null,
+        ]);
+
+        ActivityLogger::log(
+            'updated',
+            'files',
+            'Bulk moved ' . count($validated['ids']) . ' folder(s) to location "' . ($location?->name ?? 'None') . '"' .
+            ($validated['physical_path'] ? ' | Path: ' . $validated['physical_path'] : '')
+        );
+
+        return redirect()->back()->with('success', count($validated['ids']) . ' folder(s) moved successfully.');
+    }
+
+    public function bulkChangeType(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'     => ['required', 'array'],
+            'ids.*'   => ['exists:files,id'],
+            'list_id' => ['required', 'exists:lists,id'],
+        ]);
+
+        $list = FileList::find($validated['list_id']);
+
+        File::whereIn('id', $validated['ids'])->update([
+            'list_id' => $validated['list_id'],
+        ]);
+
+        ActivityLogger::log(
+            'updated',
+            'files',
+            'Bulk changed employment type to "' . ($list?->name ?? 'N/A') . '" for ' . count($validated['ids']) . ' folder(s)'
+        );
+
+        return redirect()->back()->with('success', count($validated['ids']) . ' folder(s) updated successfully.');
+    }
+
+    public function bulkExport(Request $request)
+    {
+        $ids    = explode(',', $request->ids ?? '');
+        $format = $request->format ?? 'pdf';
+
+        $files = File::with('list', 'physical_location')
+            ->whereIn('id', $ids)
+            ->get();
+
+        $headings = ['Full Name', 'Employment Type', 'Location', 'Physical Path', 'Attachments', 'Required Docs'];
+
+        $rows = $files->map(fn($file) => [
+            'Full Name'       => $file->fullname,
+            'Employment Type' => $file->list?->name ?? 'N/A',
+            'Location'        => $file->physical_location?->name ?? 'N/A',
+            'Physical Path'   => $file->physical_path ?? 'N/A',
+            'Attachments'     => count($file->attachments ?? []),
+            'Required Docs'   => count($file->list?->requirements ?? []),
+        ])->toArray();
+
+        if ($format === 'excel') {
+            return response()->streamDownload(function () use ($headings, $rows) {
+                $writer = SimpleExcelWriter::streamDownload('selected-folders.xlsx');
+                $writer->addHeader($headings);
+                foreach ($rows as $row) {
+                    $writer->addRow($row);
+                }
+                $writer->toBrowserOutput();
+            }, 'selected-folders.xlsx');
+        }
+
+        $pdf = Pdf::loadView('reports.default', [
+            'title'    => 'Selected Folders Export',
+            'headings' => $headings,
+            'rows'     => array_map('array_values', $rows),
+        ])->setPaper('a4', 'landscape');
+
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="selected-folders.pdf"',
+        ]);
     }
 }

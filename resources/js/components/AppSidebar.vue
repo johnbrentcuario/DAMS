@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ClipboardList, Folder, FileBarChart2, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -21,14 +20,14 @@ import AppLogo from './AppLogo.vue';
 const page = usePage<AppPageProps>();
 const isAdmin = computed(() => page.props.auth.user?.role === 'admin');
 
-const mainNavItems = computed<NavItem[]>(() => [
+const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
-        title: 'Folder',
+        title: 'Folders',
         href: '/files',
         icon: Folder,
     },
@@ -42,24 +41,25 @@ const mainNavItems = computed<NavItem[]>(() => [
         href: '/physical-locations',
         icon: MapPin,
     },
-    ...(isAdmin.value ? [
-        {
-            title: 'User Management',
-            href: '/users',
-            icon: Users,
-        },
-        {
-            title: 'Activity Log',
-            href: '/activity-log',
-            icon: ClipboardList,
-        },
-        {
+];
+
+const adminNavItems: NavItem[] = [
+    {
+        title: 'User Management',
+        href: '/users',
+        icon: Users,
+    },
+    {
+        title: 'Activity Log',
+        href: '/activity-log',
+        icon: ClipboardList,
+    },
+    {
         title: 'Reports',
         href: '/reports',
         icon: FileBarChart2,
-        },
-    ] : []),
-]);
+    },
+];
 </script>
 
 <template>
@@ -78,6 +78,7 @@ const mainNavItems = computed<NavItem[]>(() => [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain v-if="isAdmin" :items="adminNavItems" label="Admin" />
         </SidebarContent>
 
         <SidebarFooter>
