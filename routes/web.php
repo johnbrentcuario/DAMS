@@ -9,6 +9,7 @@ use App\Http\Controllers\PhysicalLocationController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\GlobalSearchController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -23,6 +24,8 @@ Route::post('/files/bulk-delete', [FileController::class, 'bulkDelete'])->name('
 Route::post('/files/bulk-move', [FileController::class, 'bulkMove'])->name('files.bulk-move');
 Route::post('/files/bulk-change-type', [FileController::class, 'bulkChangeType'])->name('files.bulk-change-type');
 Route::get('/files/bulk-export', [FileController::class, 'bulkExport'])->name('files.bulk-export');
+
+Route::middleware(['auth'])->get('/search', GlobalSearchController::class)->name('search');
 // Resources
 
 
