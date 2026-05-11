@@ -12,8 +12,14 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\GlobalSearchController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return Inertia::render('Welcome', [
+        'canRegister' => false,
+    ]);
 })->name('home');
+
+Route::get('/register', function () {
+    return redirect('/login');
+});
 
 Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
