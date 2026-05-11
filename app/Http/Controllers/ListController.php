@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\File;
 use App\Models\FileList;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,32 @@ class ListController extends Controller
             ->select(['id', 'name', 'color', 'requirements', 'created_at'])
             ->withCount('files')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($list) {
+                $requirements = $list->requirements ?? [];
+
+                if (empty($requirements) || $list->files_count === 0) {
+                    $list->complete_count = 0;
+                    $list->completion_rate = 0;
+                    return $list;
+                }
+
+                $files = File::where('list_id', $list->id)->get();
+                $completeCount = 0;
+
+                foreach ($files as $file) {
+                    $attachments = $file->attachments ?? [];
+                    $missing = array_filter($requirements, fn($req) => !isset($attachments[$req]));
+                    if (empty($missing)) {
+                        $completeCount++;
+                    }
+                }
+
+                $list->complete_count  = $completeCount;
+                $list->completion_rate = round(($completeCount / $list->files_count) * 100);
+
+                return $list;
+            });
 
         return Inertia::render('lists/index', [
             'lists' => $lists,

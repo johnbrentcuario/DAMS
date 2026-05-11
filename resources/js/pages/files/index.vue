@@ -118,6 +118,22 @@ const clearFilters = () => {
 }
 
 /* =======================
+    Extra Documents Helpers
+======================= */
+const getExtraAttachments = (file: FileRecord) => {
+  const requirements = file.list?.requirements ?? []
+  return Object.entries(file.attachments ?? {}).filter(([key]) => !requirements.includes(key))
+}
+
+const getEditingExtraAttachments = computed(() => {
+  if (!editingFile.value) return []
+  const requirements = editingFile.value.list?.requirements ?? []
+  return Object.entries(editingFile.value.attachments ?? {}).filter(
+    ([key]) => !requirements.includes(key) && !pendingDeletions.value.includes(key)
+  )
+})
+
+/* =======================
     Bulk Selection
 ======================= */
 const selectedIds = ref<number[]>([])
@@ -154,8 +170,8 @@ const clearSelection = () => {
 /* =======================
     Bulk Action Modals
 ======================= */
-const isBulkDeleteOpen    = ref(false)
-const isBulkMoveOpen      = ref(false)
+const isBulkDeleteOpen     = ref(false)
+const isBulkMoveOpen       = ref(false)
 const isBulkChangeTypeOpen = ref(false)
 
 const bulkMoveForm = useForm({
@@ -216,18 +232,18 @@ const bulkExport = (format: 'pdf' | 'excel') => {
 /* =======================
     Forms & State Management
 ======================= */
-const isCreateDialogOpen    = ref(false)
-const isEditDialogOpen      = ref(false)
-const isViewDialogOpen      = ref(false)
-const isDeleteDialogOpen    = ref(false)
+const isCreateDialogOpen     = ref(false)
+const isEditDialogOpen       = ref(false)
+const isViewDialogOpen       = ref(false)
+const isDeleteDialogOpen     = ref(false)
 const isOverwriteWarningOpen = ref(false)
 
 const editingFile        = ref<FileRecord | null>(null)
 const viewingFile        = ref<FileRecord | null>(null)
 const deletingFileRecord = ref<FileRecord | null>(null)
 
-const overwriteData   = ref<{ file: File, requirement: string } | null>(null)
-const pendingUploads  = ref<Record<string, File>>({})
+const overwriteData    = ref<{ file: File, requirement: string } | null>(null)
+const pendingUploads   = ref<Record<string, File>>({})
 const pendingDeletions = ref<string[]>([])
 
 const createForm = useForm({
@@ -260,25 +276,25 @@ const availableEditPaths = computed(() => {
 })
 
 const openViewDialog = (file: FileRecord) => {
-  viewingFile.value = file
+  viewingFile.value      = file
   isViewDialogOpen.value = true
 }
 
 const openEditDialog = (file: FileRecord) => {
-  editingFile.value = { ...file }
-  editForm.fullname = file.fullname
-  editForm.description = file.description || ''
-  editForm.list_id = file.list_id
-  editForm.physical_location_id = file.physical_location_id || ''
-  editForm.physical_path = file.physical_path || ''
-  pendingUploads.value = {}
-  pendingDeletions.value = []
-  isEditDialogOpen.value = true
+  editingFile.value              = { ...file }
+  editForm.fullname              = file.fullname
+  editForm.description           = file.description || ''
+  editForm.list_id               = file.list_id
+  editForm.physical_location_id  = file.physical_location_id || ''
+  editForm.physical_path         = file.physical_path || ''
+  pendingUploads.value           = {}
+  pendingDeletions.value         = []
+  isEditDialogOpen.value         = true
 }
 
 const openDeleteModal = (file: FileRecord) => {
-  deletingFileRecord.value = file
-  isDeleteDialogOpen.value = true
+  deletingFileRecord.value  = file
+  isDeleteDialogOpen.value  = true
 }
 
 const handleFileUploadLocal = (event: Event, requirement: string) => {
@@ -288,9 +304,9 @@ const handleFileUploadLocal = (event: Event, requirement: string) => {
   const hasExistingFile = editingFile.value?.attachments?.[requirement]
   const hasPendingFile  = pendingUploads.value[requirement]
   if (hasExistingFile || hasPendingFile) {
-    overwriteData.value = { file, requirement }
+    overwriteData.value          = { file, requirement }
     isOverwriteWarningOpen.value = true
-    target.value = ''
+    target.value                 = ''
     return
   }
   processFileSelection(file, requirement)
@@ -301,7 +317,7 @@ const confirmOverwrite = () => {
   if (overwriteData.value) {
     processFileSelection(overwriteData.value.file, overwriteData.value.requirement)
     isOverwriteWarningOpen.value = false
-    overwriteData.value = null
+    overwriteData.value          = null
   }
 }
 
@@ -311,8 +327,8 @@ const processFileSelection = (file: File, requirement: string) => {
     alert('Invalid file format. Only PDF, JPEG, and PNG are allowed.')
     return
   }
-  pendingUploads.value[requirement] = file
-  pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement)
+  pendingUploads.value[requirement]  = file
+  pendingDeletions.value             = pendingDeletions.value.filter(req => req !== requirement)
 }
 
 const removeFileLocal = (requirement: string) => {
@@ -352,10 +368,10 @@ const updateFile = () => {
   editForm.post(`/files/${editingFile.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
-      isEditDialogOpen.value = false
+      isEditDialogOpen.value  = false
       editForm.reset()
-      pendingUploads.value  = {}
-      pendingDeletions.value = []
+      pendingUploads.value    = {}
+      pendingDeletions.value  = []
     }
   })
 }
@@ -491,38 +507,26 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
               <SquareCheck class="h-4 w-4 text-primary" />
               <span class="text-sm font-semibold text-primary">{{ selectedIds.length }} selected</span>
             </div>
-
-            <!-- Change Employment Type -->
             <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs" @click="isBulkChangeTypeOpen = true">
               <Layers class="h-3.5 w-3.5" />
               Change Type
             </Button>
-
-            <!-- Move Location -->
             <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs" @click="isBulkMoveOpen = true">
               <MoveRight class="h-3.5 w-3.5" />
               Move Location
             </Button>
-
-            <!-- Export Excel -->
             <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" @click="bulkExport('excel')">
               <FileSpreadsheet class="h-3.5 w-3.5" />
               Export Excel
             </Button>
-
-            <!-- Export PDF -->
             <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-red-600 border-red-200 hover:bg-red-50" @click="bulkExport('pdf')">
               <FileText class="h-3.5 w-3.5" />
               Export PDF
             </Button>
-
-            <!-- Delete -->
             <Button variant="outline" size="sm" class="h-8 gap-1.5 text-xs text-destructive border-destructive/20 hover:bg-destructive/10" @click="isBulkDeleteOpen = true">
               <Trash2 class="h-3.5 w-3.5" />
               Delete
             </Button>
-
-            <!-- Clear selection -->
             <Button variant="ghost" size="sm" class="h-8 gap-1.5 text-xs text-muted-foreground ml-auto" @click="clearSelection">
               <X class="h-3.5 w-3.5" />
               Clear
@@ -768,6 +772,7 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                 <div class="space-y-2"><Label>Remarks</Label><textarea v-model="editForm.description" :class="selectStyle" class="min-h-[80px] resize-none" /></div>
               </form>
 
+              <!-- Documents Checklist -->
               <div v-if="editingFile" class="pt-6 border-t space-y-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold flex items-center gap-2 text-primary">
@@ -840,6 +845,53 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </div>
                   </div>
                 </div>
+
+                <!-- Extra Documents in Edit -->
+                <template v-if="getEditingExtraAttachments.length > 0">
+                  <div class="pt-2 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-sm font-bold flex items-center gap-2 text-muted-foreground">
+                        <FileText class="h-4 w-4" /> Extra Documents
+                      </h3>
+                      <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded">Not required by current type</span>
+                    </div>
+                    <div class="grid gap-2">
+                      <div
+                        v-for="[key, path] in getEditingExtraAttachments"
+                        :key="key"
+                        class="flex items-center justify-between p-3 rounded-lg border border-dashed bg-muted/10 hover:bg-muted/20 transition-colors"
+                      >
+                        <div class="flex items-center gap-3 overflow-hidden">
+                          <FileText class="h-5 w-5 text-muted-foreground shrink-0" />
+                          <div class="flex flex-col overflow-hidden">
+                            <span class="text-sm font-medium truncate">{{ key }}</span>
+                            <span class="text-[10px] text-muted-foreground">From previous employment type</span>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
+                                <a :href="`/storage/${path}`" target="_blank">
+                                  <Eye class="h-4 w-4" />
+                                </a>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View Document</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <Button variant="ghost" size="icon" @click="removeFileLocal(key)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
+                                <Trash2 class="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remove Document</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
             <div class="p-4 border-t flex justify-end gap-3 bg-muted/10">
@@ -890,6 +942,8 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                   {{ viewingFile.description || 'No additional remarks provided.' }}
                 </p>
               </div>
+
+              <!-- Document Checklist -->
               <div class="space-y-3">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Document Checklist</Label>
                 <div class="grid gap-2">
@@ -909,8 +963,42 @@ const selectStyle = "w-full border rounded-md px-3 py-2 text-sm bg-background fo
                     </div>
                     <span v-else class="text-xs font-bold text-destructive uppercase">Missing</span>
                   </div>
+                  <div v-if="!viewingFile.list?.requirements?.length" class="p-4 text-center text-xs text-muted-foreground italic border border-dashed rounded-lg">
+                    No requirements defined for this employment type.
+                  </div>
                 </div>
               </div>
+
+              <!-- Extra Documents in View -->
+              <template v-if="getExtraAttachments(viewingFile).length > 0">
+                <div class="space-y-3">
+                  <div class="flex items-center gap-2">
+                    <Label class="text-xs text-muted-foreground uppercase tracking-wider">Extra Documents</Label>
+                    <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded">Not required by current type</span>
+                  </div>
+                  <div class="grid gap-2">
+                    <div
+                      v-for="[key, path] in getExtraAttachments(viewingFile)"
+                      :key="key"
+                      class="flex items-center justify-between p-3 border border-dashed rounded-lg bg-muted/10"
+                    >
+                      <div class="flex items-center gap-3">
+                        <FileText class="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <span class="text-sm font-medium">{{ key }}</span>
+                          <p class="text-[10px] text-muted-foreground">From previous employment type</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" as-child class="h-8 gap-2">
+                        <a :href="`/storage/${path}`" target="_blank">
+                          <Eye class="h-3.5 w-3.5" /> View
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
             </div>
           </DialogContent>
         </Dialog>

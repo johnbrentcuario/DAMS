@@ -13,8 +13,11 @@ class PhysicalLocationController extends Controller
     {
         return Inertia::render('locations/Index', [
             'locations' => PhysicalLocation::latest()->get(),
+            'locations' => PhysicalLocation::withCount('files')->latest()->get(),
         ]);
     }
+
+
 
     public function store(Request $request)
     {

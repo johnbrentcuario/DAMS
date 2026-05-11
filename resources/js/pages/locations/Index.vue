@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,15 +15,48 @@ import {
     DialogFooter,
     DialogDescription
 } from '@/components/ui/dialog'
-import { Plus, Trash2, MapPin, X, Archive, Pencil, AlertTriangle, Eye } from 'lucide-vue-next'
+import { Plus, Trash2, MapPin, X, Archive, Pencil, AlertTriangle, Eye, Search, FolderOpen, Copy, Check } from 'lucide-vue-next'
 
 const props = defineProps<{ locations: any[] }>()
 
+// --- Search & Sort ---
+const searchQuery = ref('')
+const sortBy      = ref<'name' | 'files' | 'paths'>('name')
+
+const filteredLocations = computed(() => {
+    let result = [...props.locations]
+
+    if (searchQuery.value) {
+        result = result.filter(loc =>
+            loc.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+        )
+    }
+
+    if (sortBy.value === 'name') {
+        result.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy.value === 'files') {
+        result.sort((a, b) => (b.files_count ?? 0) - (a.files_count ?? 0))
+    } else if (sortBy.value === 'paths') {
+        result.sort((a, b) => (b.storage_paths?.length ?? 0) - (a.storage_paths?.length ?? 0))
+    }
+
+    return result
+})
+
+// --- Copy to clipboard ---
+const copiedPath = ref<string | null>(null)
+
+const copyPath = async (path: string) => {
+    await navigator.clipboard.writeText(path)
+    copiedPath.value = path
+    setTimeout(() => copiedPath.value = null, 2000)
+}
+
 // --- State for Dialogs ---
-const isCreateOpen = ref(false)
-const isEditOpen = ref(false)
-const isDeleteOpen = ref(false)
-const isViewOpen = ref(false) // New View State
+const isCreateOpen    = ref(false)
+const isEditOpen      = ref(false)
+const isDeleteOpen    = ref(false)
+const isViewOpen      = ref(false)
 const selectedLocation = ref<any>(null)
 
 // --- Forms ---
@@ -40,7 +73,7 @@ const editForm = useForm({
 })
 
 // --- Logic Helpers ---
-const addPath = (form: any) => form.storage_paths.push('')
+const addPath    = (form: any) => form.storage_paths.push('')
 const removePath = (form: any, index: number) => form.storage_paths.splice(index, 1)
 
 // --- Actions ---
@@ -49,6 +82,7 @@ const submitCreate = () => {
         onSuccess: () => {
             isCreateOpen.value = false
             createForm.reset()
+            createForm.color = '#6366f1'
         }
     })
 }
@@ -60,10 +94,10 @@ const openView = (loc: any) => {
 
 const openEdit = (loc: any) => {
     selectedLocation.value = loc
-    editForm.name = loc.name
-    editForm.color = loc.color || '#6366f1'
+    editForm.name          = loc.name
+    editForm.color         = loc.color || '#6366f1'
     editForm.storage_paths = loc.storage_paths ? [...loc.storage_paths] : []
-    isEditOpen.value = true
+    isEditOpen.value       = true
 }
 
 const submitUpdate = () => {
@@ -76,14 +110,14 @@ const submitUpdate = () => {
 
 const openDelete = (loc: any) => {
     selectedLocation.value = loc
-    isDeleteOpen.value = true
+    isDeleteOpen.value     = true
 }
 
 const confirmDelete = () => {
     if (!selectedLocation.value) return
     router.delete(`/physical-locations/${selectedLocation.value.id}`, {
         onSuccess: () => {
-            isDeleteOpen.value = false
+            isDeleteOpen.value    = false
             selectedLocation.value = null
         }
     })
@@ -95,10 +129,12 @@ const confirmDelete = () => {
 
     <AppLayout>
         <div class="p-6 space-y-6">
+
+            <!-- Header -->
             <div class="flex justify-between items-end">
                 <div>
                     <h1 class="text-2xl font-bold text-foreground tracking-tight">Physical Archive Map</h1>
-                    <p class="text-sm text-muted-foreground">Manage storage rooms and filing structures.</p>
+                    <p class="text-sm text-muted-foreground">{{ locations.length }} location{{ locations.length !== 1 ? 's' : '' }} · {{ locations.reduce((a, b) => a + (b.files_count ?? 0), 0) }} total folders</p>
                 </div>
 
                 <Dialog v-model:open="isCreateOpen">
@@ -135,27 +171,63 @@ const confirmDelete = () => {
                                 </Button>
                             </div>
                             <DialogFooter>
-                                <Button type="submit" class="w-full" :disabled="createForm.processing">Create Map</Button>
+                                <Button type="submit" class="w-full" :disabled="createForm.processing">Create Location</Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
             </div>
 
+            <!-- Search & Sort -->
+            <div class="flex gap-3 items-center">
+                <div class="relative flex-1 max-w-sm">
+                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                        v-model="searchQuery"
+                        placeholder="Search locations..."
+                        class="pl-9"
+                    />
+                </div>
+                <select
+                    v-model="sortBy"
+                    class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                >
+                    <option value="name">Sort: Name</option>
+                    <option value="files">Sort: Most Folders</option>
+                    <option value="paths">Sort: Most Paths</option>
+                </select>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="filteredLocations.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="rounded-full bg-gray-100 dark:bg-gray-800 p-4 mb-4">
+                    <MapPin class="h-8 w-8 text-gray-400" />
+                </div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    {{ searchQuery ? 'No locations match your search' : 'No locations yet' }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {{ searchQuery ? 'Try a different search term' : 'Add a location to get started' }}
+                </p>
+            </div>
+
+            <!-- Cards Grid -->
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <Card v-for="loc in locations" :key="loc.id"
-                    class="bg-card dark:bg-slate-900 border-t-4 transition-all hover:ring-1 hover:ring-primary/20"
-                    :style="{ borderTopColor: loc.color }">
+                <Card
+                    v-for="loc in filteredLocations"
+                    :key="loc.id"
+                    class="bg-card dark:bg-slate-900 border-t-4 transition-all hover:ring-1 hover:ring-primary/20 cursor-pointer"
+                    :style="{ borderTopColor: loc.color }"
+                    @click="openView(loc)"
+                >
                     <CardHeader class="p-4 pb-2">
                         <CardTitle class="flex items-start justify-between text-base font-semibold">
                             <div class="flex items-center gap-2 truncate pr-2">
                                 <MapPin class="h-4 w-4 shrink-0" :style="{ color: loc.color }" />
                                 <span class="truncate">{{ loc.name }}</span>
                             </div>
-                            <div class="flex shrink-0">
-                                <Button variant="ghost" size="icon" @click="openView(loc)" class="h-7 w-7 text-muted-foreground">
-                                    <Eye class="h-3.5 w-3.5" />
-                                </Button>
+                            <!-- Action buttons — stop propagation so card click doesn't fire -->
+                            <div class="flex shrink-0" @click.stop>
                                 <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-7 w-7 text-muted-foreground hover:text-indigo-500">
                                     <Pencil class="h-3.5 w-3.5" />
                                 </Button>
@@ -165,8 +237,19 @@ const confirmDelete = () => {
                             </div>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent class="p-4 pt-0 space-y-1.5">
-                        <div v-for="path in loc.storage_paths.slice(0, 3)" :key="path"
+                    <CardContent class="p-4 pt-0 space-y-2">
+
+                        <!-- Folder count badge -->
+                        <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <FolderOpen class="h-3.5 w-3.5" />
+                            <span>{{ loc.files_count ?? 0 }} folder{{ (loc.files_count ?? 0) !== 1 ? 's' : '' }}</span>
+                            <span class="mx-1">·</span>
+                            <Archive class="h-3.5 w-3.5" />
+                            <span>{{ loc.storage_paths?.length ?? 0 }} unit{{ (loc.storage_paths?.length ?? 0) !== 1 ? 's' : '' }}</span>
+                        </div>
+
+                        <!-- Storage paths preview -->
+                        <div v-for="path in loc.storage_paths?.slice(0, 3)" :key="path"
                             class="text-[11px] bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded border border-slate-100 dark:border-slate-800 truncate text-slate-500">
                             {{ path }}
                         </div>
@@ -174,12 +257,13 @@ const confirmDelete = () => {
                             + {{ loc.storage_paths.length - 3 }} more units
                         </div>
                         <div v-if="!loc.storage_paths?.length" class="text-[11px] italic text-center text-muted-foreground py-2 border border-dashed rounded bg-muted/5">
-                            Empty
+                            No storage units
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
+            <!-- VIEW DIALOG -->
             <Dialog v-model:open="isViewOpen">
                 <DialogContent class="sm:max-w-[500px] dark:bg-slate-900">
                     <DialogHeader>
@@ -189,17 +273,38 @@ const confirmDelete = () => {
                             </div>
                             <div>
                                 <DialogTitle>{{ selectedLocation?.name }}</DialogTitle>
-                                <DialogDescription>Full structural map of this location</DialogDescription>
+                                <DialogDescription>
+                                    {{ selectedLocation?.files_count ?? 0 }} folders ·
+                                    {{ selectedLocation?.storage_paths?.length ?? 0 }} storage units
+                                </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
+
                     <div class="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                        <div v-for="(path, idx) in selectedLocation?.storage_paths" :key="idx"
-                            class="flex items-center gap-3 p-3 rounded-md border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                            <Archive class="h-4 w-4 text-muted-foreground" />
-                            <span class="text-sm font-medium">{{ path }}</span>
+                        <div v-if="!selectedLocation?.storage_paths?.length" class="text-sm italic text-center text-muted-foreground py-6 border border-dashed rounded">
+                            No storage units defined.
+                        </div>
+                        <div
+                            v-for="(path, idx) in selectedLocation?.storage_paths"
+                            :key="idx"
+                            class="flex items-center justify-between gap-3 p-3 rounded-md border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 group hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                        >
+                            <div class="flex items-center gap-3 min-w-0">
+                                <Archive class="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span class="text-sm font-medium truncate">{{ path }}</span>
+                            </div>
+                            <button
+                                @click="copyPath(path)"
+                                class="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Copy path"
+                            >
+                                <Check v-if="copiedPath === path" class="h-3.5 w-3.5 text-green-500" />
+                                <Copy v-else class="h-3.5 w-3.5" />
+                            </button>
                         </div>
                     </div>
+
                     <DialogFooter>
                         <Button variant="secondary" @click="isViewOpen = false">Close</Button>
                         <Button @click="() => { isViewOpen = false; openEdit(selectedLocation) }">Edit Details</Button>
@@ -207,6 +312,7 @@ const confirmDelete = () => {
                 </DialogContent>
             </Dialog>
 
+            <!-- EDIT DIALOG -->
             <Dialog v-model:open="isEditOpen">
                 <DialogContent class="sm:max-w-[450px] dark:bg-slate-900">
                     <DialogHeader>
@@ -238,12 +344,13 @@ const confirmDelete = () => {
                             </Button>
                         </div>
                         <DialogFooter>
-                             <Button type="submit" class="w-full" :disabled="editForm.processing">Save Changes</Button>
+                            <Button type="submit" class="w-full" :disabled="editForm.processing">Save Changes</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
+            <!-- DELETE DIALOG -->
             <Dialog v-model:open="isDeleteOpen">
                 <DialogContent class="sm:max-w-[400px] dark:bg-slate-900">
                     <DialogHeader>
@@ -253,6 +360,9 @@ const confirmDelete = () => {
                         <DialogTitle class="text-center text-xl">Confirm Deletion</DialogTitle>
                         <DialogDescription class="text-center pt-2">
                             Are you sure you want to delete <span class="font-bold text-foreground">"{{ selectedLocation?.name }}"</span>?
+                            <span v-if="selectedLocation?.files_count > 0" class="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
+                                ⚠ This location has {{ selectedLocation?.files_count }} folder(s) assigned to it.
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter class="flex sm:justify-center gap-2 pt-4">
@@ -261,17 +371,14 @@ const confirmDelete = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
         </div>
     </AppLayout>
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.2);
     border-radius: 10px;
