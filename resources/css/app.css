@@ -61,14 +61,6 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
     *,
     ::after,
@@ -160,6 +152,71 @@
     --sidebar-border: hsl(0 0% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(240 5.9% 10%);
+}
+
+/* ── NIS Light Theme ─────────────────────────────────────────────────────── */
+html.nis-light {
+    --background: hsl(138 40% 97%);
+    --foreground: hsl(137 40% 10%);
+    --card: hsl(138 30% 95%);
+    --card-foreground: hsl(137 40% 10%);
+    --popover: hsl(138 30% 95%);
+    --popover-foreground: hsl(137 40% 10%);
+    --primary: hsl(137 56% 23%);
+    --primary-foreground: hsl(0 0% 98%);
+    --secondary: hsl(138 30% 90%);
+    --secondary-foreground: hsl(137 40% 15%);
+    --muted: hsl(138 20% 92%);
+    --muted-foreground: hsl(137 15% 40%);
+    --accent: hsl(43 72% 47%);
+    --accent-foreground: hsl(0 0% 9%);
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(138 20% 85%);
+    --input: hsl(138 20% 88%);
+    --ring: hsl(137 56% 23%);
+    --sidebar-background: hsl(137 50% 18%);
+    --sidebar-foreground: hsl(138 30% 90%);
+    --sidebar-primary: hsl(43 72% 47%);
+    --sidebar-primary-foreground: hsl(0 0% 9%);
+    --sidebar-accent: hsl(137 50% 25%);
+    --sidebar-accent-foreground: hsl(138 30% 90%);
+    --sidebar-border: hsl(137 40% 25%);
+    --sidebar-ring: hsl(43 72% 47%);
+    --sidebar: hsl(137 50% 18%);
+}
+
+/* ── NIS Dark Theme ──────────────────────────────────────────────────────── */
+html.nis-light.dark,
+html.dark:not(.nis-light) {
+    --background: hsl(137 30% 6%);
+    --foreground: hsl(138 20% 90%);
+    --card: hsl(137 25% 8%);
+    --card-foreground: hsl(138 20% 90%);
+    --popover: hsl(137 25% 8%);
+    --popover-foreground: hsl(138 20% 90%);
+    --primary: hsl(137 45% 45%);
+    --primary-foreground: hsl(0 0% 98%);
+    --secondary: hsl(137 20% 14%);
+    --secondary-foreground: hsl(138 20% 90%);
+    --muted: hsl(137 20% 12%);
+    --muted-foreground: hsl(138 15% 55%);
+    --accent: hsl(43 65% 45%);
+    --accent-foreground: hsl(0 0% 9%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(137 20% 15%);
+    --input: hsl(137 20% 15%);
+    --ring: hsl(137 45% 45%);
+    --sidebar-background: hsl(137 35% 5%);
+    --sidebar-foreground: hsl(138 20% 85%);
+    --sidebar-primary: hsl(43 65% 45%);
+    --sidebar-primary-foreground: hsl(0 0% 9%);
+    --sidebar-accent: hsl(137 30% 12%);
+    --sidebar-accent-foreground: hsl(138 20% 85%);
+    --sidebar-border: hsl(137 25% 12%);
+    --sidebar-ring: hsl(43 65% 45%);
+    --sidebar: hsl(137 35% 5%);
 }
 
 @layer base {

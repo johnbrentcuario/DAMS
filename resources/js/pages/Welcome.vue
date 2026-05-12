@@ -3,13 +3,13 @@ import { Head, Link } from '@inertiajs/vue3'
 </script>
 
 <template>
-    <Head title="D.A.M.S - Digital Archive & Mapping System" />
+    <Head title="D.A.M.S. - Digital Archive & Mapping System" />
 
     <div
         class="relative min-h-screen bg-cover bg-center"
         style="background-image: url('/images/landingbg.png')"
     >
-        <!-- Overlay -->
+        <!-- Dark Overlay -->
         <div class="absolute inset-0 bg-black/60"></div>
 
         <!-- Main Wrapper -->
@@ -17,16 +17,34 @@ import { Head, Link } from '@inertiajs/vue3'
 
             <!-- Navbar -->
             <header class="flex items-center justify-between px-8 py-6">
-                <div class="text-white">
-                    <h1 class="text-3xl font-extrabold tracking-wide">
-                        D.A.M.S
-                    </h1>
 
-                    <p class="text-sm text-white/80">
-                        Digital Archive & Mapping System
-                    </p>
+                <!-- Logo + Title -->
+                <div class="flex items-center gap-4 text-white">
+
+                    <!-- NIA Logo -->
+                    <img
+                        src="/favicon.ico"
+                        alt="NIA Logo"
+                        class="h-16 w-16 rounded-full border border-white/30 bg-white/10 object-cover shadow-lg"
+                    />
+
+                    <!-- System Name -->
+                    <div>
+                        <h1 class="text-3xl font-extrabold tracking-wide">
+                            D.A.M.S.
+                        </h1>
+
+                        <p class="text-sm text-white/80">
+                            Digital Archive & Mapping System
+                        </p>
+
+                        <p class="text-xs text-emerald-300">
+                            National Irrigation Administration
+                        </p>
+                    </div>
                 </div>
 
+                <!-- Login -->
                 <div class="flex gap-4">
                     <Link
                         href="/login"
@@ -45,7 +63,7 @@ import { Head, Link } from '@inertiajs/vue3'
                     </h2>
 
                     <p class="mb-8 text-lg leading-relaxed text-white/90">
-                        D.A.M.S is a centralized platform designed to manage,
+                        D.A.M.S. is a centralized platform designed to manage,
                         archive, track, and organize records of resigned
                         employees including employment documents,
                         requirements, storage locations, and reports
@@ -70,25 +88,26 @@ import { Head, Link } from '@inertiajs/vue3'
                 </div>
             </main>
 
-            <!-- Features Section -->
+            <!-- Features -->
             <section
                 id="features"
                 class="bg-black/60 px-8 py-14 backdrop-blur-md"
             >
                 <div class="mx-auto max-w-7xl text-white">
+
                     <h3 class="mb-4 text-center text-4xl font-bold">
                         System Features & Functions
                     </h3>
 
                     <p class="mx-auto mb-12 max-w-3xl text-center text-white/80">
-                        D.A.M.S helps the organization securely manage
+                        D.A.M.S. helps the organization securely manage
                         and archive resigned employee records, documents,
                         locations, and reports in one centralized system.
                     </p>
 
                     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-                        <!-- Folder Management -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">📁</div>
 
@@ -103,7 +122,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Document Tracking -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">📄</div>
 
@@ -117,7 +136,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Mapping -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">🗺️</div>
 
@@ -131,7 +150,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Search -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">🔍</div>
 
@@ -145,7 +164,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Reports -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">📊</div>
 
@@ -160,7 +179,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Activity Logs -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">📝</div>
 
@@ -174,7 +193,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- User Management -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">👥</div>
 
@@ -188,7 +207,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Dashboard -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">📈</div>
 
@@ -202,7 +221,7 @@ import { Head, Link } from '@inertiajs/vue3'
                             </p>
                         </div>
 
-                        <!-- Security -->
+                        <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
                             <div class="mb-4 text-4xl">🔒</div>
 
@@ -221,13 +240,12 @@ import { Head, Link } from '@inertiajs/vue3'
                 </div>
             </section>
 
-            <!-- Instructions Section -->
-            <section
-                class="bg-black/70 px-8 py-14"
-            >
+            <!-- Instructions -->
+            <section class="bg-black/70 px-8 py-14">
                 <div class="mx-auto max-w-6xl text-white">
+
                     <h3 class="mb-10 text-center text-4xl font-bold">
-                        How to Use D.A.M.S
+                        How to Use D.A.M.S.
                     </h3>
 
                     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -294,6 +312,7 @@ import { Head, Link } from '@inertiajs/vue3'
                 class="bg-black/80 px-8 py-10"
             >
                 <div class="mx-auto max-w-5xl text-white">
+
                     <h3 class="mb-4 text-3xl font-bold">
                         Data Privacy Act of 2012
                     </h3>
@@ -306,7 +325,7 @@ import { Head, Link } from '@inertiajs/vue3'
                     </p>
 
                     <p class="leading-relaxed text-white/80">
-                        D.A.M.S implements appropriate security measures to
+                        D.A.M.S. implements appropriate security measures to
                         protect resigned employee records, archived documents,
                         and confidential information in accordance with the
                         standards established by the National Privacy
@@ -314,6 +333,13 @@ import { Head, Link } from '@inertiajs/vue3'
                     </p>
                 </div>
             </section>
+
+            <!-- Footer -->
+            <footer class="bg-black px-8 py-6 text-center text-sm text-white/60">
+                © 2026 D.A.M.S. — Digital Archive & Mapping System <br />
+                National Irrigation Administration <br />
+                All Rights Reserved.
+            </footer>
 
         </div>
     </div>
