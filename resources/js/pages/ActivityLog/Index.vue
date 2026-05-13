@@ -55,38 +55,54 @@ function openDrawer(log: ActivityLog) {
 
 function closeDrawer() {
     drawerOpen.value = false;
+
     setTimeout(() => {
         selectedLog.value = null;
     }, 300);
 }
 
 function applyFilters() {
-    router.get('/activity-log', {
-        search: search.value || undefined,
-        module: module.value || undefined,
-        action: action.value || undefined,
-    }, { preserveState: true, replace: true });
+    router.get(
+        '/activity-log',
+        {
+            search: search.value || undefined,
+            module: module.value || undefined,
+            action: action.value || undefined,
+        },
+        {
+            preserveState: true,
+            replace: true,
+        },
+    );
 }
 
 function clearFilters() {
     search.value = '';
     module.value = '';
     action.value = '';
+
     router.get('/activity-log', {}, { preserveState: false });
 }
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }
 
 function formatDateFull(dateStr: string) {
     return new Date(dateStr).toLocaleString('en-US', {
         weekday: 'long',
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
     });
 }
 
@@ -97,11 +113,11 @@ const actionStyles: Record<string, string> = {
 };
 
 const moduleLabels: Record<string, string> = {
-    'users':            'Users',
-    'files':            'Folders',
+    users: 'Users',
+    files: 'Folders',
     'employment-types': 'Employment Types',
-    'locations':        'Locations',
-    'settings':         'Settings',
+    locations: 'Locations',
+    settings: 'Settings',
 };
 
 const roleStyles: Record<string, string> = {
@@ -118,162 +134,295 @@ function descriptionParts(description: string) {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Activity Log" />
 
-        <div class="flex flex-col gap-6 p-6">
+        <div
+            class="relative min-h-screen bg-cover bg-center bg-fixed"
+            style="background-image: url('/images/landingbg.png')"
+        >
+            <!-- Dark Overlay -->
+            <div class="absolute inset-0 bg-black/40"></div>
 
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Activity Log</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {{ logs.total }} total records
-                    </p>
-                </div>
-            </div>
+            <!-- Main Content -->
+            <div class="relative z-10 flex flex-col gap-6 p-6">
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white drop-shadow-md">
+                            Activity Log
+                        </h1>
 
-            <!-- Filters -->
-            <div class="flex flex-wrap gap-3">
-                <div class="relative flex-1 min-w-[200px]">
-                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                        v-model="search"
-                        type="text"
-                        placeholder="Search description or user..."
-                        class="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400"
-                        @keyup.enter="applyFilters"
-                    />
+                        <p class="mt-1 text-sm text-gray-200">
+                            {{ logs.total }} total records
+                        </p>
+                    </div>
                 </div>
 
-                <select
-                    v-model="module"
-                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    @change="applyFilters"
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-3">
+                    <!-- Search -->
+                    <div class="relative min-w-[200px] flex-1">
+                        <Search
+                            class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-300"
+                        />
+
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="Search description or user..."
+                            class="w-full rounded-xl border border-white/20 bg-white/10 py-2 pr-4 pl-9 text-sm text-white placeholder-gray-300 shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            @keyup.enter="applyFilters"
+                        />
+                    </div>
+
+                    <!-- Module -->
+                    <select
+                        v-model="module"
+                        class="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        @change="applyFilters"
+                    >
+                        <option value="" class="text-black">
+                            All Modules
+                        </option>
+
+                        <option value="users" class="text-black">
+                            Users
+                        </option>
+
+                        <option value="files" class="text-black">
+                            Folders
+                        </option>
+
+                        <option value="employment-types" class="text-black">
+                            Employment Types
+                        </option>
+
+                        <option value="locations" class="text-black">
+                            Locations
+                        </option>
+
+                        <option value="settings" class="text-black">
+                            Settings
+                        </option>
+                    </select>
+
+                    <!-- Action -->
+                    <select
+                        v-model="action"
+                        class="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        @change="applyFilters"
+                    >
+                        <option value="" class="text-black">
+                            All Actions
+                        </option>
+
+                        <option value="created" class="text-black">
+                            Created
+                        </option>
+
+                        <option value="updated" class="text-black">
+                            Updated
+                        </option>
+
+                        <option value="deleted" class="text-black">
+                            Deleted
+                        </option>
+                    </select>
+
+                    <!-- Clear -->
+                    <button
+                        v-if="filters.search || filters.module || filters.action"
+                        @click="clearFilters"
+                        class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20"
+                    >
+                        <X class="h-4 w-4" />
+                        Clear
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div
+                    class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl"
                 >
-                    <option value="">All Modules</option>
-                    <option value="users">Users</option>
-                    <option value="files">Folders</option>
-                    <option value="employment-types">Employment Types</option>
-                    <option value="locations">Locations</option>
-                    <option value="settings">Settings</option>
-                </select>
+                    <table class="w-full table-fixed text-sm">
+                        <thead>
+                            <tr
+                                class="border-b border-white/10 bg-white/10"
+                            >
+                                <th
+                                    class="w-[150px] px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    User
+                                </th>
 
-                <select
-                    v-model="action"
-                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    @change="applyFilters"
-                >
-                    <option value="">All Actions</option>
-                    <option value="created">Created</option>
-                    <option value="updated">Updated</option>
-                    <option value="deleted">Deleted</option>
-                </select>
+                                <th
+                                    class="w-[90px] px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    Action
+                                </th>
 
-                <button
-                    v-if="filters.search || filters.module || filters.action"
-                    @click="clearFilters"
-                    class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-                >
-                    <X class="h-4 w-4" />
-                    Clear
-                </button>
-            </div>
+                                <th
+                                    class="w-[140px] px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    Module
+                                </th>
 
-            <!-- Table -->
-            <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-                <table class="w-full text-sm table-fixed">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 w-[150px]">User</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 w-[90px]">Action</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 w-[140px]">Module</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Description</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 w-[115px]">IP Address</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 w-[145px]">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        <tr v-if="logs.data.length === 0">
-                            <td colspan="6" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">
-                                No activity logs found.
-                            </td>
-                        </tr>
-                        <tr
-                            v-for="log in logs.data"
-                            :key="log.id"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors cursor-pointer"
-                            @click="openDrawer(log)"
-                        >
-                            <!-- User -->
-                            <td class="px-4 py-3">
-                                <div class="font-medium text-gray-900 dark:text-white truncate max-w-[130px]">
-                                    {{ log.user_name }}
-                                </div>
-                                <span :class="['inline-block rounded-full px-2 py-0.5 text-xs font-medium mt-0.5', roleStyles[log.user_role] ?? 'bg-gray-100 text-gray-600']">
-                                    {{ log.user_role }}
-                                </span>
-                            </td>
+                                <th
+                                    class="px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    Description
+                                </th>
 
-                            <!-- Action -->
-                            <td class="px-4 py-3">
-                                <span :class="['inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', actionStyles[log.action] ?? 'bg-gray-100 text-gray-600']">
-                                    {{ log.action }}
-                                </span>
-                            </td>
+                                <th
+                                    class="w-[115px] px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    IP Address
+                                </th>
 
-                            <!-- Module -->
-                            <td class="px-4 py-3">
-                                <span class="inline-block rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-full">
-                                    {{ moduleLabels[log.module] ?? log.module }}
-                                </span>
-                            </td>
+                                <th
+                                    class="w-[145px] px-4 py-3 text-left font-medium text-gray-200"
+                                >
+                                    Date
+                                </th>
+                            </tr>
+                        </thead>
 
-                            <!-- Description -->
-                            <td class="px-4 py-3">
-                                <div class="min-w-0">
-                                    <div class="font-medium text-gray-900 dark:text-white truncate max-w-[220px]">
-                                        {{ descriptionParts(log.description)[0] }}
+                        <tbody class="divide-y divide-white/10">
+                            <tr v-if="logs.data.length === 0">
+                                <td
+                                    colspan="6"
+                                    class="px-4 py-10 text-center text-gray-300"
+                                >
+                                    No activity logs found.
+                                </td>
+                            </tr>
+
+                            <tr
+                                v-for="log in logs.data"
+                                :key="log.id"
+                                class="cursor-pointer transition hover:bg-white/10"
+                                @click="openDrawer(log)"
+                            >
+                                <!-- User -->
+                                <td class="px-4 py-3">
+                                    <div
+                                        class="max-w-[130px] truncate font-medium text-white"
+                                    >
+                                        {{ log.user_name }}
                                     </div>
-                                    <div v-if="descriptionParts(log.description).length > 1" class="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
-                                        +{{ descriptionParts(log.description).length - 1 }} more — click to view
+
+                                    <span
+                                        :class="[
+                                            'mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                                            roleStyles[log.user_role] ??
+                                                'bg-gray-100 text-gray-600',
+                                        ]"
+                                    >
+                                        {{ log.user_role }}
+                                    </span>
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-4 py-3">
+                                    <span
+                                        :class="[
+                                            'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+                                            actionStyles[log.action] ??
+                                                'bg-gray-100 text-gray-600',
+                                        ]"
+                                    >
+                                        {{ log.action }}
+                                    </span>
+                                </td>
+
+                                <!-- Module -->
+                                <td class="px-4 py-3">
+                                    <span
+                                        class="inline-block max-w-full truncate rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-white"
+                                    >
+                                        {{ moduleLabels[log.module] ?? log.module }}
+                                    </span>
+                                </td>
+
+                                <!-- Description -->
+                                <td class="px-4 py-3">
+                                    <div class="min-w-0">
+                                        <div
+                                            class="max-w-[220px] truncate font-medium text-white"
+                                        >
+                                            {{
+                                                descriptionParts(
+                                                    log.description,
+                                                )[0]
+                                            }}
+                                        </div>
+
+                                        <div
+                                            v-if="
+                                                descriptionParts(log.description)
+                                                    .length > 1
+                                            "
+                                            class="mt-0.5 text-xs text-blue-300"
+                                        >
+                                            +{{
+                                                descriptionParts(log.description)
+                                                    .length - 1
+                                            }}
+                                            more — click to view
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
+                                </td>
 
-                            <!-- IP Address -->
-                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs truncate">
-                                {{ log.ip_address ?? '—' }}
-                            </td>
+                                <!-- IP -->
+                                <td
+                                    class="truncate px-4 py-3 font-mono text-xs text-gray-300"
+                                >
+                                    {{ log.ip_address ?? '—' }}
+                                </td>
 
-                            <!-- Date -->
-                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                                {{ formatDate(log.created_at) }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                <!-- Date -->
+                                <td
+                                    class="px-4 py-3 text-xs whitespace-nowrap text-gray-300"
+                                >
+                                    {{ formatDate(log.created_at) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Pagination -->
-            <div v-if="logs.last_page > 1" class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <span>Page {{ logs.current_page }} of {{ logs.last_page }}</span>
-                <div class="flex gap-1">
-                    <Link
-                        v-for="link in logs.links"
-                        :key="link.label"
-                        :href="link.url ?? '#'"
-                        :class="[
-                            'px-3 py-1.5 rounded-md transition-colors',
-                            link.active ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
-                            !link.url ? 'pointer-events-none opacity-40' : '',
-                        ]"
-                        v-html="link.label"
-                        preserve-scroll
-                    />
+                <!-- Pagination -->
+                <div
+                    v-if="logs.last_page > 1"
+                    class="flex items-center justify-between text-sm text-gray-200"
+                >
+                    <span>
+                        Page {{ logs.current_page }} of {{ logs.last_page }}
+                    </span>
+
+                    <div class="flex gap-1">
+                        <Link
+                            v-for="link in logs.links"
+                            :key="link.label"
+                            :href="link.url ?? '#'"
+                            :class="[
+                                'rounded-lg px-3 py-1.5 transition',
+                                link.active
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-white/10 text-white hover:bg-white/20',
+                                !link.url
+                                    ? 'pointer-events-none opacity-40'
+                                    : '',
+                            ]"
+                            v-html="link.label"
+                            preserve-scroll
+                        />
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Drawer Backdrop -->
+        <!-- Drawer -->
         <Teleport to="body">
+            <!-- Backdrop -->
             <Transition
                 enter-active-class="transition-opacity duration-300"
                 enter-from-class="opacity-0"
@@ -282,12 +431,12 @@ function descriptionParts(description: string) {
             >
                 <div
                     v-if="drawerOpen"
-                    class="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+                    class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
                     @click="closeDrawer"
                 />
             </Transition>
 
-            <!-- Drawer Panel -->
+            <!-- Panel -->
             <Transition
                 enter-active-class="transition-transform duration-300 ease-out"
                 enter-from-class="translate-x-full"
@@ -296,113 +445,197 @@ function descriptionParts(description: string) {
             >
                 <div
                     v-if="drawerOpen && selectedLog"
-                    class="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl flex flex-col"
+                    class="fixed top-0 right-0 z-50 flex h-full w-full max-w-md flex-col border-l border-white/20 bg-white/10 shadow-2xl backdrop-blur-2xl"
                 >
-                    <!-- Drawer Header -->
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Log Details</h2>
+                    <!-- Header -->
+                    <div
+                        class="flex items-center justify-between border-b border-white/10 px-6 py-4"
+                    >
+                        <h2 class="text-lg font-semibold text-white">
+                            Log Details
+                        </h2>
+
                         <button
                             @click="closeDrawer"
-                            class="rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            class="rounded-md p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white"
                         >
                             <X class="h-5 w-5" />
                         </button>
                     </div>
 
-                    <!-- Drawer Body -->
-                    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
-                        <!-- Action + Module badges -->
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span :class="['inline-block rounded-full px-3 py-1 text-xs font-medium capitalize', actionStyles[selectedLog.action] ?? 'bg-gray-100 text-gray-600']">
+                    <!-- Body -->
+                    <div class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+                        <!-- Badges -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span
+                                :class="[
+                                    'inline-block rounded-full px-3 py-1 text-xs font-medium capitalize',
+                                    actionStyles[selectedLog.action],
+                                ]"
+                            >
                                 {{ selectedLog.action }}
                             </span>
-                            <span class="inline-block rounded-md bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                                {{ moduleLabels[selectedLog.module] ?? selectedLog.module }}
+
+                            <span
+                                class="inline-block rounded-md bg-white/10 px-3 py-1 text-xs font-medium text-white"
+                            >
+                                {{
+                                    moduleLabels[selectedLog.module] ??
+                                    selectedLog.module
+                                }}
                             </span>
                         </div>
 
-                        <!-- Performed By -->
-                        <div class="rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-3">
-                            <div class="flex items-center gap-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        <!-- User -->
+                        <div
+                            class="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4"
+                        >
+                            <div
+                                class="flex items-center gap-2 text-xs font-semibold tracking-wider text-gray-300 uppercase"
+                            >
                                 <User class="h-3.5 w-3.5" />
                                 Performed By
                             </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-gray-900 dark:text-white truncate min-w-0 text-sm">
+
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <span
+                                    class="min-w-0 truncate text-sm font-medium text-white"
+                                >
                                     {{ selectedLog.user_name }}
                                 </span>
-                                <span :class="['inline-block rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0', roleStyles[selectedLog.user_role] ?? 'bg-gray-100 text-gray-600']">
+
+                                <span
+                                    :class="[
+                                        'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                        roleStyles[selectedLog.user_role],
+                                    ]"
+                                >
                                     {{ selectedLog.user_role }}
                                 </span>
                             </div>
                         </div>
 
                         <!-- Description -->
-                        <div class="rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-3">
-                            <div class="flex items-center gap-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        <div
+                            class="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4"
+                        >
+                            <div
+                                class="flex items-center gap-2 text-xs font-semibold tracking-wider text-gray-300 uppercase"
+                            >
                                 <FileText class="h-3.5 w-3.5" />
                                 Description
                             </div>
+
                             <div class="space-y-3">
-                                <template v-for="(part, index) in descriptionParts(selectedLog.description)" :key="index">
-                                    <!-- Main action title -->
-                                    <div v-if="index === 0" class="font-semibold text-gray-900 dark:text-white text-sm break-words">
+                                <template
+                                    v-for="(
+                                        part, index
+                                    ) in descriptionParts(
+                                        selectedLog.description,
+                                    )"
+                                    :key="index"
+                                >
+                                    <div
+                                        v-if="index === 0"
+                                        class="text-sm font-semibold break-words text-white"
+                                    >
                                         {{ part }}
                                     </div>
-                                    <!-- Detail rows -->
-                                    <div v-else class="flex flex-col gap-0.5">
-                                        <template v-if="part.includes(': ')">
-                                            <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+
+                                    <div
+                                        v-else
+                                        class="flex flex-col gap-0.5"
+                                    >
+                                        <template
+                                            v-if="part.includes(': ')"
+                                        >
+                                            <span
+                                                class="text-xs font-semibold tracking-wide text-gray-400 uppercase"
+                                            >
                                                 {{ part.split(': ')[0] }}
                                             </span>
-                                            <span class="text-sm text-gray-700 dark:text-gray-300 break-words">
-                                                {{ part.split(': ').slice(1).join(': ') }}
+
+                                            <span
+                                                class="text-sm break-words text-gray-200"
+                                            >
+                                                {{
+                                                    part
+                                                        .split(': ')
+                                                        .slice(1)
+                                                        .join(': ')
+                                                }}
                                             </span>
                                         </template>
-                                        <span v-else class="text-sm text-gray-700 dark:text-gray-300 break-words">
+
+                                        <span
+                                            v-else
+                                            class="text-sm break-words text-gray-200"
+                                        >
                                             {{ part }}
                                         </span>
                                     </div>
-                                    <!-- Divider between items -->
-                                    <div v-if="index > 0 && index < descriptionParts(selectedLog.description).length - 1" class="border-t border-gray-100 dark:border-gray-700" />
                                 </template>
                             </div>
                         </div>
 
-                        <!-- Meta Details -->
-                        <div class="rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-3">
-                            <div class="flex items-center gap-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        <!-- Details -->
+                        <div
+                            class="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4"
+                        >
+                            <div
+                                class="flex items-center gap-2 text-xs font-semibold tracking-wider text-gray-300 uppercase"
+                            >
                                 <Tag class="h-3.5 w-3.5" />
                                 Details
                             </div>
+
                             <div class="space-y-3 text-sm">
-                                <div class="flex items-center justify-between gap-4">
-                                    <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1.5 shrink-0">
+                                <div
+                                    class="flex items-center justify-between gap-4"
+                                >
+                                    <span
+                                        class="flex shrink-0 items-center gap-1.5 text-gray-300"
+                                    >
                                         <Monitor class="h-3.5 w-3.5" />
                                         IP Address
                                     </span>
-                                    <span class="font-mono text-gray-900 dark:text-white text-xs">
+
+                                    <span
+                                        class="font-mono text-xs text-white"
+                                    >
                                         {{ selectedLog.ip_address ?? '—' }}
                                     </span>
                                 </div>
-                                <div class="border-t border-gray-100 dark:border-gray-700" />
-                                <div class="flex items-start justify-between gap-4">
-                                    <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1.5 shrink-0">
+
+                                <div class="border-t border-white/10"></div>
+
+                                <div
+                                    class="flex items-start justify-between gap-4"
+                                >
+                                    <span
+                                        class="flex shrink-0 items-center gap-1.5 text-gray-300"
+                                    >
                                         <Clock class="h-3.5 w-3.5" />
                                         Date & Time
                                     </span>
-                                    <span class="text-gray-900 dark:text-white text-xs text-right break-words">
-                                        {{ formatDateFull(selectedLog.created_at) }}
+
+                                    <span
+                                        class="text-right text-xs break-words text-white"
+                                    >
+                                        {{
+                                            formatDateFull(
+                                                selectedLog.created_at,
+                                            )
+                                        }}
                                     </span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </Transition>
         </Teleport>
-
     </AppLayout>
 </template>

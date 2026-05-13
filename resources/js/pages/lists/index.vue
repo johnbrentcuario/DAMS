@@ -2,7 +2,6 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -153,112 +152,125 @@ const completionColor = (rate: number) => {
     <Head title="Employment Types" />
 
     <AppLayout>
-        <div class="flex flex-col h-[calc(100vh-65px)] overflow-hidden">
+        <!-- ── Same background as Activity Log ── -->
+        <div
+            class="relative min-h-screen bg-cover bg-center bg-fixed"
+            style="background-image: url('/images/landingbg.png')"
+        >
+            <!-- Dark Overlay -->
+            <div class="absolute inset-0 bg-black/40"></div>
 
-            <!-- Header -->
-            <div class="p-6 flex items-center justify-between shrink-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-foreground">Employment Types</h1>
-                    <p class="text-sm text-muted-foreground">
-                        {{ lists.length }} type{{ lists.length !== 1 ? 's' : '' }} ·
-                        {{ lists.reduce((a, b) => a + (b.files_count ?? 0), 0) }} total folders
-                    </p>
-                </div>
+            <!-- Main Content -->
+            <div class="relative z-10 flex flex-col gap-6 p-6">
 
-                <Dialog v-model:open="isCreateDialogOpen">
-                    <DialogTrigger as-child>
-                        <Button size="sm">
-                            <Plus class="h-4 w-4 mr-1" />
-                            Create New
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent class="sm:max-w-[400px] max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-slate-900">
-                        <DialogHeader class="p-6 pb-2">
-                            <DialogTitle>Create Employment Type</DialogTitle>
-                        </DialogHeader>
-                        <div class="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar">
-                            <form @submit.prevent="createList" id="createForm" class="space-y-4">
-                                <div class="grid grid-cols-4 gap-4">
-                                    <div class="col-span-3 space-y-2">
-                                        <Label>Name</Label>
-                                        <Input v-model="createForm.name" placeholder="e.g. Permanent" required class="dark:bg-slate-950" />
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white drop-shadow-md">Employment Types</h1>
+                        <p class="mt-1 text-sm text-gray-200">
+                            {{ lists.length }} type{{ lists.length !== 1 ? 's' : '' }} ·
+                            {{ lists.reduce((a, b) => a + (b.files_count ?? 0), 0) }} total folders
+                        </p>
+                    </div>
+
+                    <Dialog v-model:open="isCreateDialogOpen">
+                        <DialogTrigger as-child>
+                            <button class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95">
+                                <Plus class="h-4 w-4" /> Create New
+                            </button>
+                        </DialogTrigger>
+                        <DialogContent class="sm:max-w-[400px] max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-slate-900">
+                            <DialogHeader class="p-6 pb-2">
+                                <DialogTitle>Create Employment Type</DialogTitle>
+                            </DialogHeader>
+                            <div class="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar">
+                                <form @submit.prevent="createList" id="createForm" class="space-y-4">
+                                    <div class="grid grid-cols-4 gap-4">
+                                        <div class="col-span-3 space-y-2">
+                                            <Label>Name</Label>
+                                            <Input v-model="createForm.name" placeholder="e.g. Permanent" required class="dark:bg-slate-950" />
+                                        </div>
+                                        <div class="col-span-1 space-y-2">
+                                            <Label>Color</Label>
+                                            <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer dark:bg-slate-950" />
+                                        </div>
                                     </div>
-                                    <div class="col-span-1 space-y-2">
-                                        <Label>Color</Label>
-                                        <Input type="color" v-model="createForm.color" class="h-10 p-1 cursor-pointer dark:bg-slate-950" />
-                                    </div>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label>File Checklist</Label>
-                                    <div class="space-y-2 border rounded-lg p-3 bg-muted/30 dark:bg-slate-950/50">
-                                        <div v-for="(_, index) in createForm.requirements" :key="index" class="flex gap-2">
-                                            <Input v-model="createForm.requirements[index]" placeholder="e.g. ID Copy" class="bg-background h-8 text-sm" />
-                                            <Button type="button" variant="ghost" size="icon" @click="removeRequirement(createForm, index)" class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
-                                                <X class="h-4 w-4" />
+                                    <div class="space-y-2">
+                                        <Label>File Checklist</Label>
+                                        <div class="space-y-2 border rounded-lg p-3 bg-muted/30 dark:bg-slate-950/50">
+                                            <div v-for="(_, index) in createForm.requirements" :key="index" class="flex gap-2">
+                                                <Input v-model="createForm.requirements[index]" placeholder="e.g. ID Copy" class="bg-background h-8 text-sm" />
+                                                <Button type="button" variant="ghost" size="icon" @click="removeRequirement(createForm, index)" class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
+                                                    <X class="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" class="w-full mt-1 bg-background text-xs" @click="addRequirement(createForm)">
+                                                <Plus class="h-3 w-3 mr-1" /> Add Item
                                             </Button>
                                         </div>
-                                        <Button type="button" variant="outline" size="sm" class="w-full mt-1 bg-background text-xs" @click="addRequirement(createForm)">
-                                            <Plus class="h-3 w-3 mr-1" /> Add Item
-                                        </Button>
                                     </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="p-4 border-t bg-muted/20 dark:bg-slate-900/50">
-                            <Button type="submit" form="createForm" class="w-full" :disabled="createForm.processing">
-                                {{ createForm.processing ? 'Creating...' : 'Save Employment Type' }}
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            <!-- Search & Sort -->
-            <div class="px-6 pb-4 flex gap-3 items-center shrink-0">
-                <div class="relative flex-1 max-w-sm">
-                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input v-model="searchQuery" placeholder="Search employment types..." class="pl-9" />
+                                </form>
+                            </div>
+                            <div class="p-4 border-t bg-muted/20 dark:bg-slate-900/50">
+                                <Button type="submit" form="createForm" class="w-full" :disabled="createForm.processing">
+                                    {{ createForm.processing ? 'Creating...' : 'Save Employment Type' }}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
-                <select
-                    v-model="sortBy"
-                    class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                >
-                    <option value="name">Sort: Name</option>
-                    <option value="files">Sort: Most Folders</option>
-                    <option value="completion">Sort: Completion Rate</option>
-                    <option value="requirements">Sort: Most Requirements</option>
-                </select>
-            </div>
 
-            <!-- Cards -->
-            <div class="flex-1 overflow-y-auto px-6 pt-0 custom-scrollbar">
+                <!-- Search & Sort — single line, glass style -->
+                <div class="flex items-center gap-3">
+                    <div class="relative flex-1 min-w-0">
+                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search employment types..."
+                            class="w-full rounded-xl border border-white/20 bg-white/10 py-2 pr-4 pl-9 text-sm text-white placeholder-gray-300 shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                    </div>
+                    <select
+                        v-model="sortBy"
+                        class="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        style="width: 200px; flex-shrink: 0;"
+                    >
+                        <option value="name" class="text-black">Sort: Name</option>
+                        <option value="files" class="text-black">Sort: Most Folders</option>
+                        <option value="completion" class="text-black">Sort: Completion Rate</option>
+                        <option value="requirements" class="text-black">Sort: Most Requirements</option>
+                    </select>
+                </div>
 
                 <!-- Empty state -->
-                <div v-if="filteredLists.length === 0" class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl bg-muted/20 dark:border-slate-800">
-                    <Search v-if="searchQuery" class="h-8 w-8 text-muted-foreground mb-3" />
-                    <p class="text-muted-foreground text-sm font-medium">
+                <div
+                    v-if="filteredLists.length === 0"
+                    class="flex flex-col items-center justify-center py-20 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl"
+                >
+                    <Search v-if="searchQuery" class="h-8 w-8 text-gray-300 mb-3" />
+                    <p class="text-gray-200 text-sm font-medium">
                         {{ searchQuery ? 'No types match your search' : 'No employment types found.' }}
                     </p>
-                    <p v-if="searchQuery" class="text-xs text-muted-foreground mt-1">Try a different search term</p>
+                    <p v-if="searchQuery" class="text-xs text-gray-400 mt-1">Try a different search term</p>
                 </div>
 
-                <!--
-                    FIX 1: h-[320px] → min-h-[320px]
-                    Hard height clips content at larger font sizes. A min-height keeps
-                    the compact look at default fonts but lets the card grow when needed.
-                -->
+                <!-- Cards Grid -->
                 <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
-                    <Card
+                    <div
                         v-for="list in filteredLists"
                         :key="list.id"
-                        class="flex flex-col min-h-[320px] shadow-sm hover:shadow-md transition-all border-t-4 bg-card dark:bg-slate-900 dark:border-slate-800 cursor-pointer hover:ring-1 hover:ring-primary/20"
+                        class="flex flex-col min-h-[320px] rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl cursor-pointer transition hover:bg-white/15 hover:shadow-2xl border-t-4"
                         :style="{ borderTopColor: list.color || '#6366f1' }"
                         @click="openViewDialog(list)"
                     >
-                        <CardHeader class="p-4 pb-0 shrink-0">
+                        <!-- Card Header -->
+                        <div class="p-4 pb-0 shrink-0">
                             <div class="flex items-start justify-between gap-2">
-                                <span class="font-semibold text-base leading-tight truncate min-w-0 flex-1 text-card-foreground">{{ list.name }}</span>
-                                <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground shrink-0 border">
+                                <span class="font-semibold text-base leading-tight truncate min-w-0 flex-1 text-white">
+                                    {{ list.name }}
+                                </span>
+                                <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-medium text-gray-200 shrink-0 border border-white/20">
                                     <Folder class="h-3 w-3" />
                                     {{ list.files_count || 0 }}
                                 </div>
@@ -267,12 +279,12 @@ const completionColor = (rate: number) => {
                             <!-- Completion Rate Bar -->
                             <div v-if="(list.files_count ?? 0) > 0" class="mt-2">
                                 <div class="flex justify-between items-center mb-1">
-                                    <span class="text-[10px] text-muted-foreground">Completion</span>
+                                    <span class="text-[10px] text-gray-300">Completion</span>
                                     <span class="text-[10px] font-semibold" :style="{ color: completionColor(list.completion_rate ?? 0) }">
                                         {{ list.complete_count }}/{{ list.files_count }} ({{ list.completion_rate }}%)
                                     </span>
                                 </div>
-                                <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                                <div class="w-full bg-white/10 rounded-full h-1.5">
                                     <div
                                         class="h-full rounded-full transition-all duration-500"
                                         :style="{
@@ -283,68 +295,59 @@ const completionColor = (rate: number) => {
                                 </div>
                             </div>
                             <div v-else class="mt-2">
-                                <span class="text-[10px] text-muted-foreground italic">No folders assigned</span>
+                                <span class="text-[10px] text-gray-400 italic">No folders assigned</span>
                             </div>
-                        </CardHeader>
+                        </div>
 
-                        <!--
-                            FIX 2: CardContent internal flex layout.
-
-                            The checklist scroll area was `flex-1 overflow-y-auto` but without
-                            `min-h-0` it refused to shrink, pushing the action bar outside the
-                            card bounds. Adding min-h-0 to the scroll area lets it compress and
-                            always leaves room for the pinned action bar below.
-
-                            Also added min-w-0 + truncate to the "View Folders" button text so
-                            the label never overflows its container at larger font sizes.
-                        -->
-                        <CardContent class="flex-1 flex flex-col px-4 pb-4 pt-2 min-h-0">
-                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0">
+                        <!-- Card Body -->
+                        <div class="flex-1 flex flex-col px-4 pb-4 pt-2 min-h-0">
+                            <p class="text-[9px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 shrink-0">
                                 Checklist ({{ list.requirements?.length ?? 0 }})
                             </p>
 
                             <div class="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
                                 <ul v-if="list.requirements?.length" class="space-y-1.5">
-                                    <li v-for="req in list.requirements" :key="req" class="text-xs flex items-start gap-2 text-slate-600 dark:text-slate-300">
+                                    <li v-for="req in list.requirements" :key="req" class="text-xs flex items-start gap-2 text-gray-200">
                                         <CheckCircle2 class="h-3 w-3 mt-0.5 shrink-0" :style="{ color: list.color || '#10b981' }" />
                                         <span class="leading-snug truncate">{{ req }}</span>
                                     </li>
                                 </ul>
-                                <p v-else class="text-[11px] text-muted-foreground italic py-3 border border-dashed rounded-md text-center bg-muted/30">
+                                <p v-else class="text-[11px] text-gray-400 italic py-3 border border-white/10 rounded-md text-center bg-white/5">
                                     No items set.
                                 </p>
                             </div>
 
-                            <!-- Action bar: always pinned at bottom -->
-                            <div class="flex gap-1.5 mt-3 pt-3 border-t dark:border-slate-800 shrink-0" @click.stop>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
+                            <!-- Action bar -->
+                            <div class="flex gap-1.5 mt-3 pt-3 border-t border-white/10 shrink-0" @click.stop>
+                                <button
                                     @click="openEditDialog(list)"
-                                    class="h-8 w-8 shrink-0 hover:bg-muted dark:border-slate-700"
+                                    class="h-8 w-8 shrink-0 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center text-gray-200 transition hover:bg-white/20"
                                 >
                                     <Pencil class="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
+                                </button>
+                                <button
                                     @click="openDeleteDialog(list)"
-                                    class="h-8 w-8 shrink-0"
+                                    class="h-8 w-8 shrink-0 rounded-lg border border-red-400/30 bg-red-400/10 flex items-center justify-center text-red-300 transition hover:bg-red-400/20"
                                 >
                                     <Trash2 class="h-3.5 w-3.5" />
-                                </Button>
+                                </button>
                                 <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
-                                    <Button variant="outline" size="sm" class="w-full h-8 text-xs dark:border-slate-700">
-                                        <ExternalLink class="h-3.5 w-3.5 mr-1 shrink-0" />
+                                    <button class="w-full h-8 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center gap-1 text-xs font-medium text-gray-200 transition hover:bg-white/20">
+                                        <ExternalLink class="h-3.5 w-3.5 shrink-0" />
                                         <span class="truncate">View Folders</span>
-                                    </Button>
+                                    </button>
                                 </Link>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+
+            </div><!-- /relative z-10 -->
+        </div><!-- /bg wrapper -->
+
+        <!-- ══════════════════════════
+             DIALOGS — default shadcn
+        ══════════════════════════ -->
 
         <!-- VIEW DIALOG -->
         <Dialog v-model:open="isViewDialogOpen">
@@ -357,8 +360,6 @@ const completionColor = (rate: number) => {
                     <DialogDescription class="text-xs">
                         Checking configuration and requirements for this role.
                     </DialogDescription>
-
-                    <!-- Stats row -->
                     <div class="grid grid-cols-3 gap-2 mt-2">
                         <div class="flex flex-col items-center p-2.5 rounded-lg bg-muted/50 border">
                             <span class="text-lg font-bold">{{ viewList?.files_count ?? 0 }}</span>
@@ -375,8 +376,6 @@ const completionColor = (rate: number) => {
                             <span class="text-[10px] text-muted-foreground">Complete</span>
                         </div>
                     </div>
-
-                    <!-- Completion bar -->
                     <div v-if="(viewList?.files_count ?? 0) > 0" class="mt-2">
                         <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
                             <div
@@ -392,7 +391,6 @@ const completionColor = (rate: number) => {
                         </p>
                     </div>
                 </DialogHeader>
-
                 <div class="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar">
                     <div class="space-y-2">
                         <Label class="text-[10px] uppercase tracking-wider text-muted-foreground">Checklist</Label>
@@ -407,7 +405,6 @@ const completionColor = (rate: number) => {
                         </div>
                     </div>
                 </div>
-
                 <DialogFooter class="p-4 border-t bg-muted/20 dark:bg-slate-900/50">
                     <Link :href="`/files?list_id=${viewList?.id}`" class="w-full">
                         <Button class="w-full">
@@ -505,10 +502,10 @@ const completionColor = (rate: number) => {
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.4);
+    background: rgba(255, 255, 255, 0.35);
 }
 </style>
