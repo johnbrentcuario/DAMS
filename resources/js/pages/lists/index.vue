@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -14,14 +14,11 @@ import {
     DialogDescription,
     DialogFooter
 } from '@/components/ui/dialog'
-import { type BreadcrumbItem } from '@/types'
 import {
     Plus, Pencil, Trash2, CheckCircle2, X,
-    AlertTriangle, Folder, Lock, Eye, ExternalLink, Search
+    AlertTriangle, Folder, Lock, ExternalLink, Search
 } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
-
-const breadcrumbs: BreadcrumbItem[] = []
 
 const props = defineProps<{
     lists: Array<{
@@ -68,10 +65,10 @@ const isEditDialogOpen   = ref(false)
 const isDeleteDialogOpen = ref(false)
 const isViewDialogOpen   = ref(false)
 
-const editingList     = ref<any>(null)
-const listToDelete    = ref<any>(null)
-const viewList        = ref<any>(null)
-const deletingListId  = ref<number | null>(null)
+const editingList    = ref<any>(null)
+const listToDelete   = ref<any>(null)
+const viewList       = ref<any>(null)
+const deletingListId = ref<number | null>(null)
 
 const isDeletionBlocked = computed(() => {
     return (listToDelete.value?.files_count ?? 0) > 0
@@ -100,17 +97,17 @@ const openViewDialog = (list: any) => {
 }
 
 const openEditDialog = (list: any) => {
-    editingList.value          = list
-    editForm.id                = list.id
-    editForm.name              = list.name
-    editForm.color             = list.color || '#6366f1'
-    editForm.requirements      = list.requirements ? [...list.requirements] : []
-    isEditDialogOpen.value     = true
+    editingList.value      = list
+    editForm.id            = list.id
+    editForm.name          = list.name
+    editForm.color         = list.color || '#6366f1'
+    editForm.requirements  = list.requirements ? [...list.requirements] : []
+    isEditDialogOpen.value = true
 }
 
 const openDeleteDialog = (list: any) => {
-    listToDelete.value         = list
-    isDeleteDialogOpen.value   = true
+    listToDelete.value       = list
+    isDeleteDialogOpen.value = true
 }
 
 const createList = () => {
@@ -155,7 +152,7 @@ const completionColor = (rate: number) => {
 <template>
     <Head title="Employment Types" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout>
         <div class="flex flex-col h-[calc(100vh-65px)] overflow-hidden">
 
             <!-- Header -->
@@ -245,17 +242,22 @@ const completionColor = (rate: number) => {
                     <p v-if="searchQuery" class="text-xs text-muted-foreground mt-1">Try a different search term</p>
                 </div>
 
+                <!--
+                    FIX 1: h-[320px] → min-h-[320px]
+                    Hard height clips content at larger font sizes. A min-height keeps
+                    the compact look at default fonts but lets the card grow when needed.
+                -->
                 <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
                     <Card
                         v-for="list in filteredLists"
                         :key="list.id"
-                        class="flex flex-col h-[320px] shadow-sm hover:shadow-md transition-all border-t-4 bg-card dark:bg-slate-900 dark:border-slate-800 cursor-pointer hover:ring-1 hover:ring-primary/20"
+                        class="flex flex-col min-h-[320px] shadow-sm hover:shadow-md transition-all border-t-4 bg-card dark:bg-slate-900 dark:border-slate-800 cursor-pointer hover:ring-1 hover:ring-primary/20"
                         :style="{ borderTopColor: list.color || '#6366f1' }"
                         @click="openViewDialog(list)"
                     >
                         <CardHeader class="p-4 pb-0 shrink-0">
                             <div class="flex items-start justify-between gap-2">
-                                <CardTitle class="text-base truncate text-card-foreground leading-tight">{{ list.name }}</CardTitle>
+                                <span class="font-semibold text-base leading-tight truncate min-w-0 flex-1 text-card-foreground">{{ list.name }}</span>
                                 <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground shrink-0 border">
                                     <Folder class="h-3 w-3" />
                                     {{ list.files_count || 0 }}
@@ -285,14 +287,23 @@ const completionColor = (rate: number) => {
                             </div>
                         </CardHeader>
 
-                        <CardContent class="flex-1 flex flex-col min-h-0 px-4 pb-4 pt-2">
-                            <div class="flex items-center justify-between mb-1.5 shrink-0">
-                                <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                                    Checklist ({{ list.requirements?.length ?? 0 }})
-                                </p>
-                            </div>
+                        <!--
+                            FIX 2: CardContent internal flex layout.
 
-                            <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                            The checklist scroll area was `flex-1 overflow-y-auto` but without
+                            `min-h-0` it refused to shrink, pushing the action bar outside the
+                            card bounds. Adding min-h-0 to the scroll area lets it compress and
+                            always leaves room for the pinned action bar below.
+
+                            Also added min-w-0 + truncate to the "View Folders" button text so
+                            the label never overflows its container at larger font sizes.
+                        -->
+                        <CardContent class="flex-1 flex flex-col px-4 pb-4 pt-2 min-h-0">
+                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0">
+                                Checklist ({{ list.requirements?.length ?? 0 }})
+                            </p>
+
+                            <div class="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
                                 <ul v-if="list.requirements?.length" class="space-y-1.5">
                                     <li v-for="req in list.requirements" :key="req" class="text-xs flex items-start gap-2 text-slate-600 dark:text-slate-300">
                                         <CheckCircle2 class="h-3 w-3 mt-0.5 shrink-0" :style="{ color: list.color || '#10b981' }" />
@@ -304,16 +315,28 @@ const completionColor = (rate: number) => {
                                 </p>
                             </div>
 
+                            <!-- Action bar: always pinned at bottom -->
                             <div class="flex gap-1.5 mt-3 pt-3 border-t dark:border-slate-800 shrink-0" @click.stop>
-                                <Button variant="outline" size="icon" @click="openEditDialog(list)" class="h-8 w-8 shrink-0 hover:bg-muted dark:border-slate-700">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    @click="openEditDialog(list)"
+                                    class="h-8 w-8 shrink-0 hover:bg-muted dark:border-slate-700"
+                                >
                                     <Pencil class="h-3.5 w-3.5" />
                                 </Button>
-                                <Button variant="destructive" size="icon" @click="openDeleteDialog(list)" class="h-8 w-8 shrink-0">
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    @click="openDeleteDialog(list)"
+                                    class="h-8 w-8 shrink-0"
+                                >
                                     <Trash2 class="h-3.5 w-3.5" />
                                 </Button>
-                                <Link :href="`/files?list_id=${list.id}`" class="flex-1" @click.stop>
+                                <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
                                     <Button variant="outline" size="sm" class="w-full h-8 text-xs dark:border-slate-700">
-                                        <ExternalLink class="h-3.5 w-3.5 mr-1" /> View Folders
+                                        <ExternalLink class="h-3.5 w-3.5 mr-1 shrink-0" />
+                                        <span class="truncate">View Folders</span>
                                     </Button>
                                 </Link>
                             </div>
@@ -327,9 +350,9 @@ const completionColor = (rate: number) => {
         <Dialog v-model:open="isViewDialogOpen">
             <DialogContent class="sm:max-w-[400px] max-h-[85vh] flex flex-col p-0 overflow-hidden dark:bg-slate-900">
                 <DialogHeader class="p-6 pb-2">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: viewList?.color }"></div>
-                        <DialogTitle>{{ viewList?.name }}</DialogTitle>
+                    <div class="flex items-center gap-2 mb-2 min-w-0">
+                        <div class="w-4 h-4 rounded-full shrink-0" :style="{ backgroundColor: viewList?.color }"></div>
+                        <DialogTitle class="truncate">{{ viewList?.name }}</DialogTitle>
                     </div>
                     <DialogDescription class="text-xs">
                         Checking configuration and requirements for this role.
@@ -461,7 +484,7 @@ const completionColor = (rate: number) => {
                         Please remove or reassign the folders before deleting this type.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter class="sm:justify-center gap-2 pt-2">
+                <DialogFooter class="flex justify-center gap-2 pt-2">
                     <template v-if="!isDeletionBlocked">
                         <Button variant="outline" size="sm" @click="isDeleteDialogOpen = false" class="flex-1 dark:border-slate-700">Cancel</Button>
                         <Button variant="destructive" size="sm" @click="confirmDelete" :disabled="!!deletingListId" class="flex-1">

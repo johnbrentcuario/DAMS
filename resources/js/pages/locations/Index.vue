@@ -220,23 +220,24 @@ const confirmDelete = () => {
                     :style="{ borderTopColor: loc.color }"
                     @click="openView(loc)"
                 >
-                    <CardHeader class="p-4 pb-2">
-                        <CardTitle class="flex items-start justify-between text-base font-semibold">
-                            <div class="flex items-center gap-2 truncate pr-2">
-                                <MapPin class="h-4 w-4 shrink-0" :style="{ color: loc.color }" />
-                                <span class="truncate">{{ loc.name }}</span>
-                            </div>
-                            <!-- Action buttons — stop propagation so card click doesn't fire -->
-                            <div class="flex shrink-0" @click.stop>
-                                <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-7 w-7 text-muted-foreground hover:text-indigo-500">
-                                    <Pencil class="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" @click="openDelete(loc)" class="h-7 w-7 text-muted-foreground hover:text-destructive">
-                                    <Trash2 class="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        </CardTitle>
-                    </CardHeader>
+                   <CardHeader class="p-4 pb-2">
+    <div class="flex items-start justify-between gap-2">
+        <!-- Title -->
+        <div class="flex items-center gap-2 min-w-0">
+            <MapPin class="h-4 w-4 shrink-0" :style="{ color: loc.color }" />
+            <span class="font-semibold text-base leading-snug break-words min-w-0">{{ loc.name }}</span>
+        </div>
+        <!-- Action buttons — always right-aligned, never shrink -->
+        <div class="flex shrink-0 -mr-1 -mt-0.5" @click.stop>
+            <Button variant="ghost" size="icon" @click="openEdit(loc)" class="h-7 w-7 text-muted-foreground hover:text-indigo-500">
+                <Pencil class="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" @click="openDelete(loc)" class="h-7 w-7 text-muted-foreground hover:text-destructive">
+                <Trash2 class="h-3.5 w-3.5" />
+            </Button>
+        </div>
+    </div>
+</CardHeader>
                     <CardContent class="p-4 pt-0 space-y-2">
 
                         <!-- Folder count badge -->
