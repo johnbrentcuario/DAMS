@@ -28,7 +28,7 @@ import {
   Plus, Loader2, Trash2, CheckCircle2, Circle, Edit2, Eye,
   FilterX, FileUp, FileText, XCircle, RotateCcw, MapPin,
   Archive, RefreshCw, AlertTriangle, FileSearch, Layers,
-  FileSpreadsheet, MoveRight, X, SquareCheck, Search
+  FileSpreadsheet, MoveRight, X, SquareCheck, Search, MinusCircle
 } from 'lucide-vue-next'
 
 /* =======================
@@ -121,7 +121,9 @@ const clearFilters = () => {
 ======================= */
 const getExtraAttachments = (file: FileRecord) => {
   const requirements = file.list?.requirements ?? []
-  return Object.entries(file.attachments ?? {}).filter(([key]) => !requirements.includes(key))
+  return Object.entries(file.attachments ?? {}).filter(
+    ([key, val]) => !requirements.includes(key) && val !== '__NA__'
+  )
 }
 
 const getEditingExtraAttachments = computed(() => {
@@ -244,6 +246,7 @@ const deletingFileRecord = ref<FileRecord | null>(null)
 const overwriteData    = ref<{ file: File, requirement: string } | null>(null)
 const pendingUploads   = ref<Record<string, File>>({})
 const pendingDeletions = ref<string[]>([])
+const pendingNa        = ref<string[]>([])
 
 const createForm = useForm({
   fullname: '',
@@ -261,7 +264,8 @@ const editForm = useForm({
   physical_location_id: '' as number | '',
   physical_path: '',
   new_attachments: {} as Record<string, File>,
-  delete_attachments: [] as string[]
+  delete_attachments: [] as string[],
+  na_attachments: [] as string[]
 })
 
 const availableCreatePaths = computed(() => {
@@ -288,6 +292,10 @@ const openEditDialog = (file: FileRecord) => {
   editForm.physical_path         = file.physical_path || ''
   pendingUploads.value           = {}
   pendingDeletions.value         = []
+  // Seed N/A list from existing __NA__ sentinel values
+  pendingNa.value = Object.entries(file.attachments ?? {})
+    .filter(([, v]) => v === '__NA__')
+    .map(([k]) => k)
   isEditDialogOpen.value         = true
 }
 
@@ -331,6 +339,8 @@ const processFileSelection = (file: File, requirement: string) => {
 }
 
 const removeFileLocal = (requirement: string) => {
+  // Also clear any N/A flag when removing
+  pendingNa.value = pendingNa.value.filter(r => r !== requirement)
   if (pendingUploads.value[requirement]) {
     delete pendingUploads.value[requirement]
   } else {
@@ -340,13 +350,27 @@ const removeFileLocal = (requirement: string) => {
   }
 }
 
+const toggleNa = (requirement: string) => {
+  if (pendingNa.value.includes(requirement)) {
+    // Un-mark N/A
+    pendingNa.value = pendingNa.value.filter(r => r !== requirement)
+  } else {
+    // Mark N/A — clear any pending upload or deletion for this req
+    delete pendingUploads.value[requirement]
+    pendingDeletions.value = pendingDeletions.value.filter(r => r !== requirement)
+    pendingNa.value = [...pendingNa.value, requirement]
+  }
+}
+
 const restoreFileLocal = (requirement: string) => {
   pendingDeletions.value = pendingDeletions.value.filter(req => req !== requirement)
 }
 
 const getStatus = (req: string) => {
+  if (pendingNa.value.includes(req)) return 'na'
   if (pendingDeletions.value.includes(req)) return 'deleted'
   if (pendingUploads.value[req]) return 'new'
+  if (editingFile.value?.attachments?.[req] === '__NA__') return 'na'
   if (editingFile.value?.attachments?.[req]) return 'exists'
   return 'empty'
 }
@@ -364,6 +388,7 @@ const updateFile = () => {
   if (!editingFile.value) return
   editForm.new_attachments    = pendingUploads.value
   editForm.delete_attachments = pendingDeletions.value
+  editForm.na_attachments     = pendingNa.value
   editForm.post(`/files/${editingFile.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
@@ -371,6 +396,7 @@ const updateFile = () => {
       editForm.reset()
       pendingUploads.value    = {}
       pendingDeletions.value  = []
+      pendingNa.value         = []
     }
   })
 }
@@ -822,21 +848,25 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   class="flex items-center justify-between p-3 rounded-lg border bg-card transition-all hover:border-muted-foreground/30"
                   :class="[
                     getStatus(req) === 'deleted' ? 'opacity-60 border-destructive bg-destructive/5' : '',
-                    getStatus(req) === 'exists' ? 'bg-slate-50/50' : ''
+                    getStatus(req) === 'exists'  ? 'bg-slate-50/50' : '',
+                    getStatus(req) === 'na'      ? 'border-gray-300 bg-gray-50/50 dark:bg-gray-800/30 dark:border-gray-600' : ''
                   ]"
                 >
                   <div class="flex items-center gap-3 overflow-hidden">
-                    <CheckCircle2 v-if="getStatus(req) === 'exists'" class="h-5 w-5 text-green-500 shrink-0" />
-                    <FileUp v-else-if="getStatus(req) === 'new'" class="h-5 w-5 text-blue-500 shrink-0 animate-pulse" />
-                    <Trash2 v-else-if="getStatus(req) === 'deleted'" class="h-5 w-5 text-destructive shrink-0" />
-                    <Circle v-else class="h-5 w-5 text-muted-foreground/30 shrink-0" />
+                    <CheckCircle2 v-if="getStatus(req) === 'exists'"      class="h-5 w-5 text-green-500 shrink-0" />
+                    <FileUp       v-else-if="getStatus(req) === 'new'"     class="h-5 w-5 text-blue-500 shrink-0 animate-pulse" />
+                    <Trash2       v-else-if="getStatus(req) === 'deleted'" class="h-5 w-5 text-destructive shrink-0" />
+                    <MinusCircle  v-else-if="getStatus(req) === 'na'"      class="h-5 w-5 text-gray-400 shrink-0" />
+                    <Circle       v-else                                    class="h-5 w-5 text-muted-foreground/30 shrink-0" />
                     <div class="flex flex-col overflow-hidden">
                       <span class="text-sm font-medium truncate">{{ req }}</span>
-                      <span v-if="getStatus(req) === 'new'" class="text-[10px] text-blue-600 font-bold uppercase">Pending Upload</span>
+                      <span v-if="getStatus(req) === 'new'"     class="text-[10px] text-blue-600 font-bold uppercase">Pending Upload</span>
                       <span v-if="getStatus(req) === 'deleted'" class="text-[10px] text-destructive font-bold uppercase">Marked for removal</span>
+                      <span v-if="getStatus(req) === 'na'"      class="text-[10px] text-gray-400 font-bold uppercase">Not Applicable</span>
                     </div>
                   </div>
                   <div class="flex items-center gap-1">
+                    <!-- View existing -->
                     <Tooltip v-if="getStatus(req) === 'exists'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
@@ -845,6 +875,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Open Document</TooltipContent>
                     </Tooltip>
+                    <!-- Remove file -->
                     <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -853,6 +884,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Remove attachment</TooltipContent>
                     </Tooltip>
+                    <!-- Restore from deleted -->
                     <Tooltip v-if="getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -861,7 +893,27 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Restore original file</TooltipContent>
                     </Tooltip>
-                    <div class="relative" v-if="getStatus(req) !== 'deleted'">
+                    <!-- N/A toggle — shown when empty, na, or deleted -->
+                    <Tooltip v-if="getStatus(req) === 'empty' || getStatus(req) === 'na' || getStatus(req) === 'deleted'">
+                      <TooltipTrigger as-child>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          @click="toggleNa(req)"
+                          :class="[
+                            'h-8 w-8 transition-all',
+                            getStatus(req) === 'na'
+                              ? 'text-gray-500 bg-gray-100 dark:bg-gray-700'
+                              : 'text-muted-foreground hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          ]"
+                        >
+                          <MinusCircle class="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{{ getStatus(req) === 'na' ? 'Remove N/A mark' : 'Mark as N/A' }}</TooltipContent>
+                    </Tooltip>
+                    <!-- Upload / Replace (hidden when na) -->
+                    <div class="relative" v-if="getStatus(req) !== 'deleted' && getStatus(req) !== 'na'">
                       <input :id="`edit-input-${req}`" type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleFileUploadLocal($event, req)" />
                       <Tooltip>
                         <TooltipTrigger as-child>
@@ -976,19 +1028,23 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
               <Label class="text-xs text-muted-foreground uppercase tracking-wider">Document Checklist</Label>
               <div class="grid gap-2">
                 <div v-for="req in viewingFile.list?.requirements" :key="req"
-                  class="flex items-center justify-between p-3 border rounded-lg bg-background">
+                  class="flex items-center justify-between p-3 border rounded-lg bg-background"
+                  :class="viewingFile.attachments?.[req] === '__NA__' ? 'border-gray-200 bg-gray-50/50 dark:bg-gray-800/30' : ''"
+                >
                   <div class="flex items-center gap-3">
-                    <CheckCircle2 v-if="viewingFile.attachments?.[req]" class="h-5 w-5 text-green-500" />
-                    <XCircle v-else class="h-5 w-5 text-destructive/40" />
+                    <CheckCircle2 v-if="viewingFile.attachments?.[req] && viewingFile.attachments[req] !== '__NA__'" class="h-5 w-5 text-green-500" />
+                    <MinusCircle  v-else-if="viewingFile.attachments?.[req] === '__NA__'"                           class="h-5 w-5 text-gray-400" />
+                    <XCircle      v-else                                                                            class="h-5 w-5 text-destructive/40" />
                     <span class="text-sm font-medium">{{ req }}</span>
                   </div>
-                  <div v-if="viewingFile.attachments?.[req]">
+                  <div v-if="viewingFile.attachments?.[req] && viewingFile.attachments[req] !== '__NA__'">
                     <Button variant="outline" size="sm" as-child class="h-8 gap-2">
                       <a :href="`/storage/${viewingFile.attachments[req]}`" target="_blank">
                         <Eye class="h-3.5 w-3.5" /> View
                       </a>
                     </Button>
                   </div>
+                  <span v-else-if="viewingFile.attachments?.[req] === '__NA__'" class="text-xs font-bold text-gray-400 uppercase">N/A</span>
                   <span v-else class="text-xs font-bold text-destructive uppercase">Missing</span>
                 </div>
                 <div v-if="!viewingFile.list?.requirements?.length" class="p-4 text-center text-xs text-muted-foreground italic border border-dashed rounded-lg">

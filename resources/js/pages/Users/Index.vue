@@ -123,26 +123,25 @@ const roleStyles: Record<string, string> = {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="User Management" />
 
-        <!-- ── Same background as Activity Log ── -->
+        <!-- Background Wrapper -->
         <div
             class="relative min-h-screen bg-cover bg-center bg-fixed"
             style="background-image: url('/images/landingbg.png')"
         >
-            <!-- Dark Overlay -->
             <div class="absolute inset-0 bg-black/40"></div>
 
             <!-- Main Content -->
-            <div class="relative z-10 flex flex-col gap-6 p-6">
+            <div class="relative z-10 flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
                 <!-- Header -->
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 class="text-3xl font-bold text-white drop-shadow-md">User Management</h1>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white drop-shadow-md">User Management</h1>
                         <p class="mt-1 text-sm text-gray-200">{{ users.total }} total users</p>
                     </div>
                     <button
                         @click="openCreate"
-                        class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95"
                     >
                         <Plus class="h-4 w-4" />
                         Add User
@@ -150,12 +149,18 @@ const roleStyles: Record<string, string> = {
                 </div>
 
                 <!-- Flash messages -->
-                <div v-if="$page.props.flash?.success" class="rounded-xl border border-green-400/30 bg-green-400/10 px-4 py-3 text-sm text-green-300 backdrop-blur-md">
-                    {{ $page.props.flash.success }}
-                </div>
-                <div v-if="$page.props.flash?.error" class="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300 backdrop-blur-md">
-                    {{ $page.props.flash.error }}
-                </div>
+                <TransitionGroup
+                    enter-active-class="transition duration-300 ease-out"
+                    enter-from-class="transform translate-y-[-10px] opacity-0"
+                    enter-to-class="transform translate-y-0 opacity-100"
+                >
+                    <div v-if="$page.props.flash?.success" key="success" class="rounded-xl border border-green-400/30 bg-green-400/10 px-4 py-3 text-sm text-green-300 backdrop-blur-md">
+                        {{ $page.props.flash.success }}
+                    </div>
+                    <div v-if="$page.props.flash?.error" key="error" class="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300 backdrop-blur-md">
+                        {{ $page.props.flash.error }}
+                    </div>
+                </TransitionGroup>
 
                 <!-- Search -->
                 <div class="relative">
@@ -164,63 +169,68 @@ const roleStyles: Record<string, string> = {
                         v-model="searchQuery"
                         type="text"
                         placeholder="Search users..."
-                        class="w-full rounded-xl border border-white/20 bg-white/10 py-2 pr-4 pl-9 text-sm text-white placeholder-gray-300 shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        class="w-full rounded-xl border border-white/20 bg-white/10 py-2.5 pr-4 pl-10 text-sm text-white placeholder-gray-300 shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
                     />
                 </div>
 
-                <!-- Table -->
-                <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl">
+                <!-- Table Container -->
+                <div class="overflow-x-auto rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-white/10 bg-white/10">
-                                <th class="px-4 py-3 text-left font-medium text-gray-200">Name</th>
-                                <th class="px-4 py-3 text-left font-medium text-gray-200">Email</th>
-                                <th class="px-4 py-3 text-left font-medium text-gray-200">ID Number</th>
-                                <th class="px-4 py-3 text-left font-medium text-gray-200">Role</th>
-                                <th class="px-4 py-3 text-left font-medium text-gray-200">Joined</th>
-                                <th class="px-4 py-3 text-right font-medium text-gray-200">Actions</th>
+                                <th class="px-4 py-4 text-left font-semibold text-gray-200">Name</th>
+                                <th class="hidden md:table-cell px-4 py-4 text-left font-semibold text-gray-200">Email</th>
+                                <th class="hidden sm:table-cell px-4 py-4 text-left font-semibold text-gray-200">ID Number</th>
+                                <th class="px-4 py-4 text-left font-semibold text-gray-200">Role</th>
+                                <th class="hidden lg:table-cell px-4 py-4 text-left font-semibold text-gray-200">Joined</th>
+                                <th class="px-4 py-4 text-right font-semibold text-gray-200">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/10">
                             <tr v-if="filteredUsers.length === 0">
-                                <td colspan="6" class="px-4 py-10 text-center text-gray-300">
-                                    No users found.
+                                <td colspan="6" class="px-4 py-12 text-center text-gray-300 italic">
+                                    No users found matching your search.
                                 </td>
                             </tr>
                             <tr
                                 v-for="user in filteredUsers"
                                 :key="user.id"
-                                class="transition hover:bg-white/10"
+                                class="transition hover:bg-white/5"
                             >
-                                <td class="px-4 py-3 font-medium text-white">{{ user.name }}</td>
-                                <td class="px-4 py-3 text-gray-300">{{ user.email }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs font-mono text-gray-200">
+                                <td class="px-4 py-4 font-medium text-white">
+                                    {{ user.name }}
+                                    <div class="md:hidden text-xs text-gray-400 font-normal mt-0.5">{{ user.email }}</div>
+                                </td>
+                                <td class="hidden md:table-cell px-4 py-4 text-gray-300">{{ user.email }}</td>
+                                <td class="hidden sm:table-cell px-4 py-4">
+                                    <span class="inline-block rounded-md bg-white/5 px-2 py-1 text-xs font-mono text-gray-200">
                                         {{ user.id_number }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-4">
                                     <span
                                         :class="[
-                                            'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                            'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider',
                                             roleStyles[user.role]
                                         ]"
                                     >
-                                        {{ user.role === 'admin' ? 'Admin' : 'Staff' }}
+                                        {{ user.role }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-gray-300">{{ formatDate(user.created_at) }}</td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center justify-end gap-1">
+                                <td class="hidden lg:table-cell px-4 py-4 text-xs text-gray-300">{{ formatDate(user.created_at) }}</td>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center justify-end gap-2">
                                         <button
                                             @click="openEdit(user)"
-                                            class="rounded-lg p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-blue-300"
+                                            class="rounded-lg p-2 text-gray-300 transition hover:bg-white/10 hover:text-blue-300"
+                                            title="Edit User"
                                         >
                                             <Pencil class="h-4 w-4" />
                                         </button>
                                         <button
                                             @click="confirmDelete(user)"
-                                            class="rounded-lg p-1.5 text-gray-300 transition hover:bg-red-400/10 hover:text-red-300"
+                                            class="rounded-lg p-2 text-gray-300 transition hover:bg-red-400/10 hover:text-red-300"
+                                            title="Delete User"
                                         >
                                             <Trash2 class="h-4 w-4" />
                                         </button>
@@ -234,18 +244,18 @@ const roleStyles: Record<string, string> = {
                 <!-- Pagination -->
                 <div
                     v-if="users.last_page > 1"
-                    class="flex items-center justify-between text-sm text-gray-200"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-200 pb-8"
                 >
-                    <span>Page {{ users.current_page }} of {{ users.last_page }}</span>
-                    <div class="flex gap-1">
+                    <span>Showing Page {{ users.current_page }} of {{ users.last_page }}</span>
+                    <div class="flex flex-wrap justify-center gap-1">
                         <Link
                             v-for="link in users.links"
                             :key="link.label"
                             :href="link.url ?? '#'"
                             :class="[
-                                'rounded-lg px-3 py-1.5 transition',
+                                'rounded-lg px-3 py-2 transition text-xs sm:text-sm',
                                 link.active
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                                     : 'bg-white/10 text-white hover:bg-white/20',
                                 !link.url ? 'pointer-events-none opacity-40' : '',
                             ]"
@@ -255,40 +265,47 @@ const roleStyles: Record<string, string> = {
                     </div>
                 </div>
 
-            </div><!-- /relative z-10 -->
-        </div><!-- /bg wrapper -->
+            </div>
+        </div>
 
         <!-- ══════════════════════════════
-             Create / Edit Modal
+             Create / Edit Modal (Responsive)
         ══════════════════════════════ -->
         <Teleport to="body">
             <Transition
-                enter-active-class="transition-opacity duration-200"
-                enter-from-class="opacity-0"
-                leave-active-class="transition-opacity duration-200"
-                leave-to-class="opacity-0"
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-to-class="opacity-0 scale-95"
             >
-                <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal" />
-                    <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6">
-                        <div class="flex items-center justify-between mb-5">
+                <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                    <!-- Backdrop -->
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal" />
+
+                    <!-- Modal Card -->
+                    <div class="relative flex flex-col w-full max-w-md max-h-[90vh] rounded-2xl bg-white dark:bg-gray-800 shadow-2xl overflow-hidden">
+
+                        <!-- Header -->
+                        <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
                             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ editingUser ? 'Edit User' : 'Create User' }}
+                                {{ editingUser ? 'Edit User Profile' : 'Register New User' }}
                             </h2>
-                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1">
                                 <X class="h-5 w-5" />
                             </button>
                         </div>
 
-                        <div class="space-y-4">
+                        <!-- Scrollable Body -->
+                        <div class="flex-1 overflow-y-auto p-5 space-y-4">
                             <!-- Name -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
                                 <input
                                     v-model="form.name"
                                     type="text"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-400': form.errors.name }"
+                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                                    :class="{ 'border-red-400 ring-red-100': form.errors.name }"
                                     placeholder="Juan Dela Cruz"
                                 />
                                 <p v-if="form.errors.name" class="mt-1 text-xs text-red-500">{{ form.errors.name }}</p>
@@ -296,84 +313,84 @@ const roleStyles: Record<string, string> = {
 
                             <!-- Email -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Email Address</label>
                                 <input
                                     v-model="form.email"
                                     type="email"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-400': form.errors.email }"
+                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                                    :class="{ 'border-red-400 ring-red-100': form.errors.email }"
                                     placeholder="juan@example.com"
                                 />
                                 <p v-if="form.errors.email" class="mt-1 text-xs text-red-500">{{ form.errors.email }}</p>
                             </div>
 
-                            <!-- ID Number -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ID Number</label>
-                                <input
-                                    v-model="form.id_number"
-                                    type="text"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-400': form.errors.id_number }"
-                                    placeholder="123456"
-                                />
-                                <p v-if="form.errors.id_number" class="mt-1 text-xs text-red-500">{{ form.errors.id_number }}</p>
+                            <!-- ID & Role Grid -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">ID Number</label>
+                                    <input
+                                        v-model="form.id_number"
+                                        type="text"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        :class="{ 'border-red-400 ring-red-100': form.errors.id_number }"
+                                        placeholder="EMP-101"
+                                    />
+                                    <p v-if="form.errors.id_number" class="mt-1 text-xs text-red-500">{{ form.errors.id_number }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Role</label>
+                                    <select
+                                        v-model="form.role"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    >
+                                        <option value="staff">Staff</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <!-- Role -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-                                <select
-                                    v-model="form.role"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-400': form.errors.role }"
-                                >
-                                    <option value="staff">Staff</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                                <p v-if="form.errors.role" class="mt-1 text-xs text-red-500">{{ form.errors.role }}</p>
-                            </div>
+                            <!-- Password Fields -->
+                            <div class="pt-4 space-y-4 border-t border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                                        Password <span v-if="editingUser" class="lowercase font-normal opacity-70">(Leave blank to keep current)</span>
+                                    </label>
+                                    <input
+                                        v-model="form.password"
+                                        type="password"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                                        :class="{ 'border-red-400 ring-red-100': form.errors.password }"
+                                        placeholder="••••••••"
+                                    />
+                                    <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
+                                </div>
 
-                            <!-- Password -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Password <span v-if="editingUser" class="text-gray-400 font-normal">(leave blank to keep)</span>
-                                </label>
-                                <input
-                                    v-model="form.password"
-                                    type="password"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-400': form.errors.password }"
-                                    placeholder="••••••••"
-                                />
-                                <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
-                            </div>
-
-                            <!-- Confirm Password -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
-                                <input
-                                    v-model="form.password_confirmation"
-                                    type="password"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    placeholder="••••••••"
-                                />
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Confirm Password</label>
+                                    <input
+                                        v-model="form.password_confirmation"
+                                        type="password"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex gap-3 mt-6">
+                        <!-- Footer -->
+                        <div class="flex flex-col sm:flex-row gap-3 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                             <button
                                 @click="closeModal"
-                                class="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+                                class="order-2 sm:order-1 flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 @click="submitForm"
                                 :disabled="form.processing"
-                                class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
+                                class="order-1 sm:order-2 flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 shadow-lg shadow-blue-500/20 transition-all"
                             >
-                                {{ form.processing ? 'Saving...' : (editingUser ? 'Save Changes' : 'Create User') }}
+                                {{ form.processing ? 'Saving...' : (editingUser ? 'Update User' : 'Create User') }}
                             </button>
                         </div>
                     </div>
@@ -384,32 +401,34 @@ const roleStyles: Record<string, string> = {
         <!-- Delete Confirm Modal -->
         <Teleport to="body">
             <Transition
-                enter-active-class="transition-opacity duration-200"
-                enter-from-class="opacity-0"
-                leave-active-class="transition-opacity duration-200"
-                leave-to-class="opacity-0"
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-to-class="opacity-0 scale-95"
             >
                 <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showDeleteConfirm = false" />
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDeleteConfirm = false" />
                     <div class="relative w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Delete User</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                            Are you sure you want to delete
-                            <strong class="text-gray-900 dark:text-white">{{ deletingUser?.name }}</strong>?
-                            This action cannot be undone.
+                        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                            <Trash2 class="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirm Deletion</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+                            Are you sure you want to delete <strong class="text-gray-900 dark:text-white">{{ deletingUser?.name }}</strong>? This action will remove all associated data and cannot be undone.
                         </p>
                         <div class="flex gap-3">
                             <button
                                 @click="showDeleteConfirm = false"
-                                class="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+                                class="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
                             >
-                                Cancel
+                                No, Keep
                             </button>
                             <button
                                 @click="deleteUser"
-                                class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                                class="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 shadow-lg shadow-red-500/20 transition-colors"
                             >
-                                Delete
+                                Yes, Delete
                             </button>
                         </div>
                     </div>
@@ -419,3 +438,20 @@ const roleStyles: Record<string, string> = {
 
     </AppLayout>
 </template>
+
+<style scoped>
+/* Smooth scrollbar for the modal body */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 10px;
+}
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+}
+</style>

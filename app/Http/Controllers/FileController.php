@@ -36,7 +36,7 @@ class FileController extends Controller
 
         if ($request->filled('missing_requirement')) {
             $requirement = $request->missing_requirement;
-            $query->where(function($sub) use ($requirement) {
+            $query->where(function ($sub) use ($requirement) {
                 $sub->whereRaw("JSON_CONTAINS_PATH(attachments, 'one', '$.\"$requirement\"') = 0")
                     ->orWhereNull('attachments');
             });
@@ -48,8 +48,8 @@ class FileController extends Controller
         }
         $query->orderBy('fullname', $sortDirection);
 
-        $files = $query->paginate(10)->withQueryString();
-        $lists = FileList::select(['id', 'name', 'color', 'requirements'])->get();
+        $files              = $query->paginate(10)->withQueryString();
+        $lists              = FileList::select(['id', 'name', 'color', 'requirements'])->get();
         $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
 
         return Inertia::render('files/index', [
@@ -104,6 +104,8 @@ class FileController extends Controller
             'new_attachments'      => ['nullable', 'array'],
             'new_attachments.*'    => ['file', 'mimes:pdf,jpg,png,docx', 'max:5120'],
             'delete_attachments'   => ['nullable', 'array'],
+            'na_attachments'       => ['nullable', 'array'],
+            'na_attachments.*'     => ['string'],
         ]);
 
         $before = [
@@ -114,23 +116,35 @@ class FileController extends Controller
             'path'        => $file->physical_path ?? 'empty',
         ];
 
-        $attachments  = $file->attachments ?? [];
-        $deletedFiles = [];
+        $attachments   = $file->attachments ?? [];
+        $deletedFiles  = [];
         $uploadedFiles = [];
+        $naFiles       = [];
 
-        if ($request->filled('delete_attachments')) {
-            foreach ($request->delete_attachments as $reqName) {
-                if (isset($attachments[$reqName])) {
-                    Storage::disk('public')->delete($attachments[$reqName]);
-                    unset($attachments[$reqName]);
-                    $deletedFiles[] = $reqName;
-                }
+        // ── 1. Delete removed attachments ────────────────────────────────────
+        foreach ($request->input('delete_attachments', []) as $reqName) {
+            if (isset($attachments[$reqName]) && $attachments[$reqName] !== '__NA__') {
+                Storage::disk('public')->delete($attachments[$reqName]);
             }
+            unset($attachments[$reqName]);
+            $deletedFiles[] = $reqName;
         }
 
+        // ── 2. Mark N/A ───────────────────────────────────────────────────────
+        //    Store '__NA__' sentinel. If a real file existed, delete it first.
+        foreach ($request->input('na_attachments', []) as $reqName) {
+            if (isset($attachments[$reqName]) && $attachments[$reqName] !== '__NA__') {
+                Storage::disk('public')->delete($attachments[$reqName]);
+            }
+            $attachments[$reqName] = '__NA__';
+            $naFiles[] = $reqName;
+        }
+
+        // ── 3. Upload new / replacement files ────────────────────────────────
         if ($request->hasFile('new_attachments')) {
             foreach ($request->file('new_attachments') as $reqName => $uploadedFile) {
-                if (isset($attachments[$reqName])) {
+                // Uploading a real file always overrides N/A or an old file
+                if (isset($attachments[$reqName]) && $attachments[$reqName] !== '__NA__') {
                     Storage::disk('public')->delete($attachments[$reqName]);
                 }
                 $path = $uploadedFile->store('attachments', 'public');
@@ -161,12 +175,16 @@ class FileController extends Controller
             'attachments'          => $attachments,
         ]);
 
+        // ── Build activity log extras ─────────────────────────────────────────
         $extras = [];
         if (!empty($uploadedFiles)) {
-            $extras[] = 'Uploaded: ' . implode(', ', $uploadedFiles);
+            $extras[] = 'Uploaded: '  . implode(', ', $uploadedFiles);
         }
         if (!empty($deletedFiles)) {
-            $extras[] = 'Removed: ' . implode(', ', $deletedFiles);
+            $extras[] = 'Removed: '   . implode(', ', $deletedFiles);
+        }
+        if (!empty($naFiles)) {
+            $extras[] = 'Marked N/A: ' . implode(', ', $naFiles);
         }
 
         ActivityLogger::logChanges(
@@ -186,7 +204,10 @@ class FileController extends Controller
 
         if ($file->attachments) {
             foreach ($file->attachments as $path) {
-                Storage::disk('public')->delete($path);
+                // Skip the N/A sentinel — nothing to delete from storage
+                if ($path !== '__NA__') {
+                    Storage::disk('public')->delete($path);
+                }
             }
         }
 
@@ -217,7 +238,9 @@ class FileController extends Controller
         foreach ($files as $file) {
             if ($file->attachments) {
                 foreach ($file->attachments as $path) {
-                    Storage::disk('public')->delete($path);
+                    if ($path !== '__NA__') {
+                        Storage::disk('public')->delete($path);
+                    }
                 }
             }
             ActivityLogger::log(
@@ -299,7 +322,7 @@ class FileController extends Controller
             'Employment Type' => $file->list?->name ?? 'N/A',
             'Location'        => $file->physical_location?->name ?? 'N/A',
             'Physical Path'   => $file->physical_path ?? 'N/A',
-            'Attachments'     => count($file->attachments ?? []),
+            'Attachments'     => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
             'Required Docs'   => count($file->list?->requirements ?? []),
         ])->toArray();
 
