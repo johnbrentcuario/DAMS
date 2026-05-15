@@ -29,7 +29,7 @@ class ReportsController extends Controller
         $format = $request->format;
 
         return match($type) {
-            'missing-documents'  => $this->exportMissingDocuments($request, $format),
+            'no-record-documents'  => $this->exportNoRecordDocuments($request, $format),
             'complete-documents' => $this->exportCompleteDocuments($request, $format),
             'folder-summary'     => $this->exportFolderSummary($request, $format),
             'employment-types'   => $this->exportEmploymentTypes($format),
@@ -41,10 +41,10 @@ class ReportsController extends Controller
         };
     }
 
-    private function exportMissingDocuments(Request $request, string $format)
+    private function exportNoRecordDocuments(Request $request, string $format)
     {
         $listId   = $request->list_id;
-        $headings = ['Full Name', 'Employment Type', 'Location', 'Missing Documents', 'Missing Count'];
+        $headings = ['Full Name', 'Employment Type', 'Location', 'No Record Documents', 'No Record Count'];
         $rows     = [];
 
         File::with('list', 'physical_location')->get()->each(function ($file) use (&$rows, $listId) {
@@ -57,17 +57,17 @@ class ReportsController extends Controller
                     'Full Name'         => $file->fullname,
                     'Employment Type'   => $file->list?->name ?? 'N/A',
                     'Location'          => $file->physical_location?->name ?? 'N/A',
-                    'Missing Documents' => implode(', ', $missing),
-                    'Missing Count'     => count($missing),
+                    'No Record Documents' => implode(', ', $missing),
+                    'No Record Count'     => count($missing),
                 ];
             }
         });
 
         if ($format === 'excel') {
-            return $this->streamExcel('missing-documents.xlsx', $headings, $rows);
+            return $this->streamExcel('no-record-documents.xlsx', $headings, $rows);
         }
 
-        return $this->streamPdf('Missing Documents Report', $headings, array_map('array_values', $rows), 'missing-documents.pdf');
+        return $this->streamPdf('No Record Documents Report', $headings, array_map('array_values', $rows), 'no-record-documents.pdf');
     }
 
     private function exportCompleteDocuments(Request $request, string $format)

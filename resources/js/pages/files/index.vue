@@ -522,7 +522,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
               <option value="" class="text-black">All Documents Present</option>
               <optgroup label="Show Records Missing:">
                 <option v-for="req in allPossibleRequirements" :key="req" :value="req" class="text-black">
-                  Missing: {{ req }}
+                  No Record: {{ req }}
                 </option>
               </optgroup>
             </select>
@@ -545,7 +545,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             class="flex items-center gap-2 rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-2 text-sm font-medium text-yellow-200 backdrop-blur-md animate-in fade-in slide-in-from-left-2"
           >
             <FileSearch class="h-4 w-4" />
-            Filtering personnel missing: <span class="underline decoration-2">{{ missingRequirement }}</span>
+            Personnel Without Records: <span class="underline decoration-2">{{ missingRequirement }}</span>
           </div>
 
           <!-- Bulk Action Toolbar -->
@@ -1077,7 +1077,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </Button>
                   </div>
                   <span v-else-if="viewingFile.attachments?.[req] === '__NA__'" class="text-xs font-bold text-gray-400 uppercase">N/A</span>
-                  <span v-else class="text-xs font-bold text-destructive uppercase">Missing</span>
+                  <span v-else class="text-xs font-bold text-destructive uppercase">No Record</span>
                 </div>
                 <div v-if="!viewingFile.list?.requirements?.length" class="p-4 text-center text-xs text-muted-foreground italic border border-dashed rounded-lg">
                   No requirements defined for this employment type.

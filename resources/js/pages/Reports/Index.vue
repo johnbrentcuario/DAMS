@@ -33,7 +33,7 @@ const props = defineProps<{
 const loading = ref<string | null>(null);
 
 const filters = ref({
-    'missing-documents':  { list_id: '' },
+    'no-record-documents':  { list_id: '' },
     'complete-documents': { list_id: '' },
     'folder-summary':     { list_id: '', location_id: '' },
     'employment-types':   {},
@@ -45,9 +45,9 @@ const filters = ref({
 
 const reports = [
     {
-        key: 'missing-documents',
-        title: 'Missing Documents',
-        description: 'Folders missing required documents.',
+        key: 'no-record-documents',
+        title: 'No Record Documents',
+        description: 'Folders with incomplete uploads.',
         icon: FileX,
         accent: 'border-red-400/40',
         iconBg: 'bg-red-400/15',
@@ -185,12 +185,12 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                         <div class="flex-1 space-y-3">
 
                             <!-- Missing / Complete Documents -->
-                            <div v-if="report.key === 'missing-documents' || report.key === 'complete-documents'">
+                            <div v-if="report.key === 'no-record-documents' || report.key === 'complete-documents'">
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
                                     Employment Type
                                 </label>
                                 <select
-                                    v-model="filters[report.key as 'missing-documents' | 'complete-documents'].list_id"
+                                    v-model="filters[report.key as 'no-record-documents' | 'complete-documents'].list_id"
                                     :class="glassSelect"
                                 >
                                     <option value="" class="text-black">All Types</option>
