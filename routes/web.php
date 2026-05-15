@@ -10,7 +10,7 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\GlobalSearchController;
-
+use App\Http\Controllers\SeparationModesController;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canRegister' => false,
@@ -41,6 +41,9 @@ Route::resource('physical-locations', PhysicalLocationController::class);
 Route::resource('users', UsersController::class)
     ->only(['index', 'store', 'update', 'destroy'])
     ->middleware(['auth', 'admin']);
+Route::resource('separation-modes', SeparationModesController::class)
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middleware(['auth', 'verified']);
 Route::get('activity-log', [ActivityLogController::class, 'index'])
     ->middleware(['auth', 'admin'])
     ->name('activity-log.index');

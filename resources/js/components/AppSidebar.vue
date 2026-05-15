@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ClipboardList, Folder, FileBarChart2, LayoutGrid, List, MapPin, Users } from 'lucide-vue-next';
+import { ClipboardList, Folder, FileBarChart2, LayoutGrid, List, MapPin, Scissors, Users } from 'lucide-vue-next';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -40,6 +40,11 @@ const mainNavItems: NavItem[] = [
         title: 'Locations',
         href: '/physical-locations',
         icon: MapPin,
+    },
+    {
+        title: 'Mode of Separation',
+        href: '/separation-modes',  // 👈 adjust to your actual route
+        icon: Scissors,
     },
 ];
 

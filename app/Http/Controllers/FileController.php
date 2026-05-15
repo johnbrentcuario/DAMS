@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\SimpleExcel\SimpleExcelWriter;
+use App\Models\SeparationMode;
 
 class FileController extends Controller
 {
@@ -20,7 +21,8 @@ class FileController extends Controller
     {
         $query = File::query()->with([
             'list:id,name,color,requirements',
-            'physical_location'
+            'physical_location',
+            'separationMode:id,name'
         ]);
 
         if ($request->filled('search')) {
@@ -51,11 +53,13 @@ class FileController extends Controller
         $files              = $query->paginate(10)->withQueryString();
         $lists              = FileList::select(['id', 'name', 'color', 'requirements'])->get();
         $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
+        $separation_modes   = SeparationMode::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('files/index', [
             'files'              => $files,
             'lists'              => $lists,
             'physical_locations' => $physical_locations,
+            'separation_modes'   => $separation_modes,
             'filters'            => [
                 'search'              => $request->search,
                 'list_id'             => $request->list_id,
@@ -73,6 +77,7 @@ class FileController extends Controller
             'list_id'              => ['required', 'exists:lists,id'],
             'physical_location_id' => ['nullable', 'exists:physical_locations,id'],
             'physical_path'        => ['nullable', 'string', 'max:255'],
+            'separation_mode_id'   => ['nullable', 'exists:separation_modes,id'],
         ]);
 
         $file = File::create($validated);
@@ -81,12 +86,15 @@ class FileController extends Controller
         $location = $validated['physical_location_id']
             ? PhysicalLocation::find($validated['physical_location_id'])
             : null;
-
+        $separationMode = $validated['separation_mode_id']
+            ? SeparationMode::find($validated['separation_mode_id'])
+            : null;
         ActivityLogger::log(
             'created',
             'files',
             "Created folder \"{$file->fullname}\" | Employment Type: " . ($list?->name ?? 'None') .
             " | Location: " . ($location?->name ?? 'None') .
+            " | Separation: " . ($separationMode?->name ?? 'None')
             ($validated['physical_path'] ? " | Path: {$validated['physical_path']}" : '')
         );
 
@@ -106,14 +114,16 @@ class FileController extends Controller
             'delete_attachments'   => ['nullable', 'array'],
             'na_attachments'       => ['nullable', 'array'],
             'na_attachments.*'     => ['string'],
+            'separation_mode_id' => ['nullable', 'exists:separation_modes,id'],
         ]);
 
         $before = [
-            'name'        => $file->fullname,
-            'description' => $file->description ?? 'empty',
-            'list'        => $file->list?->name ?? 'None',
-            'location'    => $file->physical_location?->name ?? 'None',
-            'path'        => $file->physical_path ?? 'empty',
+            'name'            => $file->fullname,
+            'description'     => $file->description ?? 'empty',
+            'list'            => $file->list?->name ?? 'None',
+            'location'        => $file->physical_location?->name ?? 'None',
+            'path'            => $file->physical_path ?? 'empty',
+            'separation_mode' => $file->separationMode?->name ?? 'None',
         ];
 
         $attachments   = $file->attachments ?? [];
@@ -157,6 +167,9 @@ class FileController extends Controller
         $newLocation = $validated['physical_location_id']
             ? PhysicalLocation::find($validated['physical_location_id'])
             : null;
+        $newSeparationMode = $validated['separation_mode_id']
+            ? SeparationMode::find($validated['separation_mode_id'])
+            : null;
 
         $after = [
             'name'        => $validated['fullname'],
@@ -164,6 +177,7 @@ class FileController extends Controller
             'list'        => $newList?->name ?? 'None',
             'location'    => $newLocation?->name ?? 'None',
             'path'        => $validated['physical_path'] ?? 'empty',
+            'separation_mode' => $newSeparationMode?->name ?? 'None',
         ];
 
         $file->update([
@@ -172,6 +186,7 @@ class FileController extends Controller
             'list_id'              => $validated['list_id'],
             'physical_location_id' => $validated['physical_location_id'],
             'physical_path'        => $validated['physical_path'],
+            'separation_mode_id'   => $validated['separation_mode_id'],
             'attachments'          => $attachments,
         ]);
 

@@ -19,6 +19,7 @@ class File extends Model
         'attachments',
         'priority',
         'completed',
+        'separation_mode_id',
     ];
 
     protected $casts = [
@@ -40,5 +41,11 @@ class File extends Model
     public function physical_location(): BelongsTo
     {
         return $this->belongsTo(PhysicalLocation::class, 'physical_location_id');
+    }
+
+
+    public function separationMode()
+    {
+    return $this->belongsTo(SeparationMode::class);
     }
 }

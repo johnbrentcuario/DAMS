@@ -28,7 +28,8 @@ import {
   Plus, Loader2, Trash2, CheckCircle2, Circle, Edit2, Eye,
   FilterX, FileUp, FileText, XCircle, RotateCcw, MapPin,
   Archive, RefreshCw, AlertTriangle, FileSearch, Layers,
-  FileSpreadsheet, MoveRight, X, SquareCheck, Search, MinusCircle
+  FileSpreadsheet, MoveRight, X, SquareCheck, Search, MinusCircle,
+  Scissors
 } from 'lucide-vue-next'
 
 /* =======================
@@ -41,6 +42,11 @@ interface PhysicalLocation {
   storage_paths: string[]
 }
 
+interface SeparationMode {
+  id: number
+  name: string
+}
+
 interface FileRecord {
   id: number
   fullname: string
@@ -48,6 +54,7 @@ interface FileRecord {
   list_id: number
   physical_location_id?: number
   physical_path?: string
+  separation_mode_id?: number
   attachments: Record<string, string>
   list: {
     id: number
@@ -56,6 +63,7 @@ interface FileRecord {
     requirements?: string[]
   }
   physical_location?: PhysicalLocation
+  separation_mode?: SeparationMode
 }
 
 interface FileList {
@@ -77,6 +85,7 @@ const props = defineProps<{
   files: PaginationFiles
   lists: FileList[]
   physical_locations: PhysicalLocation[]
+  separation_modes: SeparationMode[]
   filters: { search?: string; list_id?: string; sort?: string; missing_requirement?: string }
 }>()
 
@@ -253,7 +262,8 @@ const createForm = useForm({
   description: '',
   list_id: '' as number | '',
   physical_location_id: '' as number | '',
-  physical_path: ''
+  physical_path: '',
+  separation_mode_id: '' as number | '',
 })
 
 const editForm = useForm({
@@ -263,6 +273,7 @@ const editForm = useForm({
   list_id: '' as number | '',
   physical_location_id: '' as number | '',
   physical_path: '',
+  separation_mode_id: '' as number | '',
   new_attachments: {} as Record<string, File>,
   delete_attachments: [] as string[],
   na_attachments: [] as string[]
@@ -290,9 +301,9 @@ const openEditDialog = (file: FileRecord) => {
   editForm.list_id               = file.list_id
   editForm.physical_location_id  = file.physical_location_id || ''
   editForm.physical_path         = file.physical_path || ''
+  editForm.separation_mode_id    = file.separation_mode_id || ''
   pendingUploads.value           = {}
   pendingDeletions.value         = []
-  // Seed N/A list from existing __NA__ sentinel values
   pendingNa.value = Object.entries(file.attachments ?? {})
     .filter(([, v]) => v === '__NA__')
     .map(([k]) => k)
@@ -339,7 +350,6 @@ const processFileSelection = (file: File, requirement: string) => {
 }
 
 const removeFileLocal = (requirement: string) => {
-  // Also clear any N/A flag when removing
   pendingNa.value = pendingNa.value.filter(r => r !== requirement)
   if (pendingUploads.value[requirement]) {
     delete pendingUploads.value[requirement]
@@ -352,10 +362,8 @@ const removeFileLocal = (requirement: string) => {
 
 const toggleNa = (requirement: string) => {
   if (pendingNa.value.includes(requirement)) {
-    // Un-mark N/A
     pendingNa.value = pendingNa.value.filter(r => r !== requirement)
   } else {
-    // Mark N/A — clear any pending upload or deletion for this req
     delete pendingUploads.value[requirement]
     pendingDeletions.value = pendingDeletions.value.filter(r => r !== requirement)
     pendingNa.value = [...pendingNa.value, requirement]
@@ -422,15 +430,12 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
   <TooltipProvider>
     <AppLayout>
 
-      <!-- ── Same background as Activity Log ── -->
       <div
         class="relative min-h-screen bg-cover bg-center bg-fixed"
         style="background-image: url('/images/landingbg.png')"
       >
-        <!-- Dark Overlay -->
         <div class="absolute inset-0 bg-black/40"></div>
 
-        <!-- Main Content -->
         <div class="relative z-10 flex flex-col gap-6 p-6 w-full max-w-7xl mx-auto">
 
           <!-- Header -->
@@ -477,6 +482,15 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                     </select>
                   </div>
+                  <!-- Mode of Separation -->
+                  <div class="space-y-2">
+                    <Label>Mode of Separation</Label>
+                    <select v-model="createForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
+                      <option value="">— None —</option>
+                      <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
+                    </select>
+                    <InputError :message="createForm.errors.separation_mode_id" />
+                  </div>
                   <div class="space-y-2">
                     <Label>Remarks</Label>
                     <textarea v-model="createForm.description" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none min-h-[100px] resize-none" />
@@ -490,9 +504,8 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             </Dialog>
           </div>
 
-          <!-- Filters — single line -->
+          <!-- Filters -->
           <div class="flex items-center gap-3">
-            <!-- Search -->
             <div class="relative flex-1 min-w-0">
               <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-300" />
               <input
@@ -502,14 +515,10 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 :class="glassInput + ' pl-9 pr-4'"
               />
             </div>
-
-            <!-- Employment Type -->
             <select v-model="listId" :class="glassSelect" style="width: 170px; flex-shrink: 0;">
               <option value="" class="text-black">All Employment Types</option>
               <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">{{ list.name }}</option>
             </select>
-
-            <!-- Missing Requirement -->
             <select v-model="missingRequirement" :class="glassSelect" style="width: 190px; flex-shrink: 0;">
               <option value="" class="text-black">All Documents Present</option>
               <optgroup label="Show Records Missing:">
@@ -518,14 +527,10 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 </option>
               </optgroup>
             </select>
-
-            <!-- Sort -->
             <select v-model="sort" :class="glassSelect" style="width: 130px; flex-shrink: 0;">
               <option value="asc" class="text-black">Name (A–Z)</option>
               <option value="desc" class="text-black">Name (Z–A)</option>
             </select>
-
-            <!-- Clear -->
             <button
               v-if="search || listId || missingRequirement || sort !== 'asc'"
               @click="clearFilters"
@@ -559,7 +564,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 <SquareCheck class="h-4 w-4 text-blue-300" />
                 <span class="text-sm font-semibold text-white">{{ selectedIds.length }} selected</span>
               </div>
-
               <button @click="isBulkChangeTypeOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20">
                 <Layers class="h-3.5 w-3.5" /> Change Type
               </button>
@@ -599,6 +603,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <th class="px-4 py-3 text-left font-medium text-gray-200">Full Name</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200">Employment Type</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200">Location</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Mode of Separation</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200 hidden lg:table-cell">Remarks</th>
                   <th class="px-4 py-3 text-center font-medium text-gray-200 w-40">Actions</th>
                 </tr>
@@ -642,6 +647,16 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </div>
                     <span v-else class="text-xs text-gray-400 italic">No mapping</span>
                   </td>
+                  <!-- Mode of Separation column -->
+                  <td class="px-4 py-3 hidden xl:table-cell">
+                    <div v-if="file.separation_mode" class="flex items-center gap-1.5">
+                      <Scissors class="h-3 w-3 text-orange-300 shrink-0" />
+                      <span class="inline-block rounded-md bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 text-xs font-medium text-orange-200">
+                        {{ file.separation_mode.name }}
+                      </span>
+                    </div>
+                    <span v-else class="text-xs text-gray-400 italic">—</span>
+                  </td>
                   <td class="px-4 py-3 text-gray-300 hidden lg:table-cell italic text-xs">
                     {{ file.description || 'N/A' }}
                   </td>
@@ -675,7 +690,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   </td>
                 </tr>
                 <tr v-if="files.data.length === 0">
-                  <td colspan="7" class="px-4 py-10 text-center text-gray-300">
+                  <td colspan="8" class="px-4 py-10 text-center text-gray-300">
                     No records found matching these filters.
                   </td>
                 </tr>
@@ -707,12 +722,11 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             </div>
           </div>
 
-        </div><!-- /relative z-10 -->
-      </div><!-- /bg wrapper -->
+        </div>
+      </div>
 
       <!-- ══════════════════════════════════════════════
-           DIALOGS — kept with default shadcn styling
-           since they float above the background
+           DIALOGS
       ══════════════════════════════════════════════ -->
 
       <!-- BULK DELETE -->
@@ -809,7 +823,10 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           </DialogHeader>
           <div class="flex-1 overflow-y-auto p-6 space-y-6">
             <form @submit.prevent="updateFile" id="edit-form" class="space-y-4">
-              <div class="space-y-2"><Label>Full Name</Label><input v-model="editForm.fullname" required class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none" /></div>
+              <div class="space-y-2">
+                <Label>Full Name</Label>
+                <input v-model="editForm.fullname" required class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none" />
+              </div>
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label>Employment Type</Label>
@@ -832,7 +849,18 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
-              <div class="space-y-2"><Label>Remarks</Label><textarea v-model="editForm.description" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none min-h-[80px] resize-none" /></div>
+              <!-- Mode of Separation -->
+              <div class="space-y-2">
+                <Label>Mode of Separation</Label>
+                <select v-model="editForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
+                  <option value="">— None —</option>
+                  <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <Label>Remarks</Label>
+                <textarea v-model="editForm.description" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none min-h-[80px] resize-none" />
+              </div>
             </form>
 
             <!-- Documents Checklist -->
@@ -866,7 +894,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </div>
                   </div>
                   <div class="flex items-center gap-1">
-                    <!-- View existing -->
                     <Tooltip v-if="getStatus(req) === 'exists'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
@@ -875,7 +902,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Open Document</TooltipContent>
                     </Tooltip>
-                    <!-- Remove file -->
                     <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -884,7 +910,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Remove attachment</TooltipContent>
                     </Tooltip>
-                    <!-- Restore from deleted -->
                     <Tooltip v-if="getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -893,7 +918,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Restore original file</TooltipContent>
                     </Tooltip>
-                    <!-- N/A toggle — shown when empty, na, or deleted -->
                     <Tooltip v-if="getStatus(req) === 'empty' || getStatus(req) === 'na' || getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button
@@ -912,7 +936,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>{{ getStatus(req) === 'na' ? 'Remove N/A mark' : 'Mark as N/A' }}</TooltipContent>
                     </Tooltip>
-                    <!-- Upload / Replace (hidden when na) -->
                     <div class="relative" v-if="getStatus(req) !== 'deleted' && getStatus(req) !== 'na'">
                       <input :id="`edit-input-${req}`" type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleFileUploadLocal($event, req)" />
                       <Tooltip>
@@ -1007,16 +1030,26 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 </div>
               </div>
             </div>
-            <div class="space-y-1">
-              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
-              <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
-                <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
-                <div>
-                  <p class="font-medium text-slate-800">{{ viewingFile.physical_location.name }}</p>
-                  <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
+                <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
+                  <MapPin class="h-4 w-4" :style="{ color: viewingFile.physical_location.color }" />
+                  <div>
+                    <p class="font-medium text-slate-800">{{ viewingFile.physical_location.name }}</p>
+                    <p class="text-xs text-muted-foreground">{{ viewingFile.physical_path }}</p>
+                  </div>
                 </div>
+                <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
               </div>
-              <p v-else class="text-sm italic text-muted-foreground">Not assigned to a location.</p>
+              <div class="space-y-1">
+                <Label class="text-xs text-muted-foreground uppercase tracking-wider">Mode of Separation</Label>
+                <div v-if="viewingFile.separation_mode" class="flex items-center gap-2 p-3 rounded-md border bg-orange-50/50">
+                  <Scissors class="h-4 w-4 text-orange-500" />
+                  <p class="font-medium text-slate-800">{{ viewingFile.separation_mode.name }}</p>
+                </div>
+                <p v-else class="text-sm italic text-muted-foreground">Not specified.</p>
+              </div>
             </div>
             <div class="space-y-1">
               <Label class="text-xs text-muted-foreground uppercase tracking-wider">Remarks</Label>
