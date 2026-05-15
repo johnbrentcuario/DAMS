@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Plus, Pencil, Trash2,} from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Scissors } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -54,10 +46,10 @@ const props = defineProps<{
 }>();
 
 // ── Dialog state ──────────────────────────────────────────────────────────────
-const showFormDialog = ref(false);
+const showFormDialog   = ref(false);
 const showDeleteDialog = ref(false);
-const editingMode = ref<SeparationMode | null>(null);
-const deletingMode = ref<SeparationMode | null>(null);
+const editingMode      = ref<SeparationMode | null>(null);
+const deletingMode     = ref<SeparationMode | null>(null);
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 const form = useForm({
@@ -72,9 +64,9 @@ function openCreate() {
 }
 
 function openEdit(mode: SeparationMode) {
-    editingMode.value = mode;
-    form.name = mode.name;
-    form.description = mode.description ?? '';
+    editingMode.value    = mode;
+    form.name            = mode.name;
+    form.description     = mode.description ?? '';
     showFormDialog.value = true;
 }
 
@@ -95,7 +87,7 @@ function submitForm() {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function confirmDelete(mode: SeparationMode) {
-    deletingMode.value = mode;
+    deletingMode.value     = mode;
     showDeleteDialog.value = true;
 }
 
@@ -106,85 +98,108 @@ function deleteMode() {
     });
 }
 
-
+function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+    });
+}
 </script>
 
 <template>
     <AppLayout>
-        <div class="flex flex-col gap-6 p-6">
 
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">Mode of Separation</h1>
-                    <p class="text-muted-foreground text-sm mt-1">
-                        Manage the types of separation (e.g. Resigned, Terminated, Retired).
-                    </p>
+        <!-- ── Same background as Activity Log ── -->
+        <div
+            class="relative min-h-screen bg-cover bg-center bg-fixed"
+            style="background-image: url('/images/landingbg.png')"
+        >
+            <!-- Dark Overlay -->
+            <div class="absolute inset-0 bg-black/40"></div>
+
+            <!-- Main Content -->
+            <div class="relative z-10 flex flex-col gap-6 p-6">
+
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white drop-shadow-md">Mode of Separation</h1>
+                        <p class="mt-1 text-sm text-gray-200">
+                            {{ separationModes.total }} mode{{ separationModes.total !== 1 ? 's' : '' }} ·
+                            Manage types of separation (e.g. Resigned, Terminated, Retired)
+                        </p>
+                    </div>
+                    <button
+                        @click="openCreate"
+                        class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95"
+                    >
+                        <Plus class="h-4 w-4" /> Add Mode
+                    </button>
                 </div>
-                <Button @click="openCreate" class="gap-2">
-                    <Plus class="size-4" />
-                    Add Mode
-                </Button>
-            </div>
 
-            <!-- Table -->
-            <div class="rounded-lg border bg-card">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead class="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow
-                            v-for="mode in separationModes.data"
-                            :key="mode.id"
-                        >
-                            <TableCell class="font-medium">{{ mode.name }}</TableCell>
-                            <TableCell class="text-muted-foreground max-w-xs truncate">
-                                {{ mode.description || '—' }}
-                            </TableCell>
-                            <TableCell class="text-muted-foreground text-sm">
-                                {{ new Date(mode.created_at).toLocaleDateString() }}
-                            </TableCell>
-                            <TableCell class="text-right">
-                                <div class="flex justify-end gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        @click="openEdit(mode)"
-                                    >
-                                        <Pencil class="size-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="text-destructive hover:text-destructive"
-                                        @click="confirmDelete(mode)"
-                                    >
-                                        <Trash2 class="size-4" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                <!-- Table -->
+                <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-white/10 bg-white/10">
+                                <th class="px-4 py-3 text-left font-medium text-gray-200">Name</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-200">Description</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-200 hidden sm:table-cell">Created</th>
+                                <th class="px-4 py-3 text-right font-medium text-gray-200">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/10">
+                            <tr
+                                v-for="mode in separationModes.data"
+                                :key="mode.id"
+                                class="transition hover:bg-white/10"
+                            >
+                                <td class="px-4 py-3 font-medium text-white">
+                                    {{ mode.name }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-300 max-w-xs truncate italic">
+                                    {{ mode.description || '—' }}
+                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-300 hidden sm:table-cell">
+                                    {{ formatDate(mode.created_at) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1">
+                                        <button
+                                            @click="openEdit(mode)"
+                                            class="rounded-lg p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            @click="confirmDelete(mode)"
+                                            class="rounded-lg p-1.5 text-red-300 transition hover:bg-red-400/10 hover:text-red-200"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
 
-                        <TableRow v-if="separationModes.data.length === 0">
-                            <TableCell colspan="5" class="text-center text-muted-foreground py-10">
-                                No modes of separation found. Add one to get started.
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </div>
+                            <tr v-if="separationModes.data.length === 0">
+                                <td colspan="4" class="px-4 py-10 text-center text-gray-300 italic">
+                                    No modes of separation found. Add one to get started.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Pagination info -->
-            <p v-if="separationModes.total > 0" class="text-sm text-muted-foreground text-right">
-                Showing {{ separationModes.data.length }} of {{ separationModes.total }} entries
-            </p>
-        </div>
+                <!-- Pagination info -->
+                <p v-if="separationModes.total > 0" class="text-sm text-gray-300 text-right">
+                    Showing {{ separationModes.data.length }} of {{ separationModes.total }} entries
+                </p>
+
+            </div><!-- /relative z-10 -->
+        </div><!-- /bg wrapper -->
+
+        <!-- ══════════════════════════
+             DIALOGS — default shadcn
+        ══════════════════════════ -->
 
         <!-- Create / Edit Dialog -->
         <Dialog v-model:open="showFormDialog">
@@ -231,7 +246,7 @@ function deleteMode() {
                 <DialogFooter class="gap-2">
                     <Button variant="outline" @click="showFormDialog = false">Cancel</Button>
                     <Button @click="submitForm" :disabled="form.processing">
-                        {{ editingMode ? 'Save Changes' : 'Create' }}
+                        {{ form.processing ? 'Saving...' : (editingMode ? 'Save Changes' : 'Create') }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -259,5 +274,6 @@ function deleteMode() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
     </AppLayout>
 </template>
