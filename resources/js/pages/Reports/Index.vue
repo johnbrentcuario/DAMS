@@ -5,7 +5,8 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import {
     FileX, FileCheck, FolderOpen, Briefcase,
-    MapPin, ClipboardList, Users, FileSpreadsheet, FileText
+    MapPin, ClipboardList, Users, FileSpreadsheet, FileText,
+    UploadCloud
 } from 'lucide-vue-next';
 
 interface List {
@@ -18,9 +19,15 @@ interface Location {
     name: string;
 }
 
+interface User {
+    id: number;
+    name: string;
+}
+
 const props = defineProps<{
     lists: List[];
     locations: Location[];
+    users: User[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,6 +44,7 @@ const filters = ref({
     'locations':          {},
     'activity-log':       { module: '', action: '', date_from: '', date_to: '' },
     'users':              {},
+    'upload-activity':    { user_id: '', date_from: '', date_to: '' },
 });
 
 const reports = [
@@ -102,6 +110,15 @@ const reports = [
         accent: 'border-indigo-400/40',
         iconBg: 'bg-indigo-400/15',
         iconColor: 'text-indigo-300',
+    },
+    {
+        key: 'upload-activity',
+        title: 'Upload Activity',
+        description: 'Number of folders created per user within a date range.',
+        icon: UploadCloud,
+        accent: 'border-cyan-400/40',
+        iconBg: 'bg-cyan-400/15',
+        iconColor: 'text-cyan-300',
     },
 ];
 
@@ -177,17 +194,15 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
                                     Employment Type
                                 </label>
-                                <div class="relative">
-                                    <select
-                                        v-model="filters[report.key as 'missing-documents' | 'complete-documents'].list_id"
-                                        :class="glassSelect"
-                                    >
-                                        <option value="" class="text-black">All Types</option>
-                                        <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">
-                                            {{ list.name }}
-                                        </option>
-                                    </select>
-                                </div>
+                                <select
+                                    v-model="filters[report.key as 'missing-documents' | 'complete-documents'].list_id"
+                                    :class="glassSelect"
+                                >
+                                    <option value="" class="text-black">All Types</option>
+                                    <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">
+                                        {{ list.name }}
+                                    </option>
+                                </select>
                             </div>
 
                             <!-- Folder Summary -->
@@ -236,19 +251,34 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">From</label>
-                                        <input
-                                            v-model="filters['activity-log'].date_from"
-                                            type="date"
-                                            :class="glassInput + ' [color-scheme:dark]'"
-                                        />
+                                        <input v-model="filters['activity-log'].date_from" type="date" :class="glassInput + ' [color-scheme:dark]'" />
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">To</label>
-                                        <input
-                                            v-model="filters['activity-log'].date_to"
-                                            type="date"
-                                            :class="glassInput + ' [color-scheme:dark]'"
-                                        />
+                                        <input v-model="filters['activity-log'].date_to" type="date" :class="glassInput + ' [color-scheme:dark]'" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upload Activity -->
+                            <div v-if="report.key === 'upload-activity'" class="space-y-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">User</label>
+                                    <select v-model="filters['upload-activity'].user_id" :class="glassSelect">
+                                        <option value="" class="text-black">All Users</option>
+                                        <option v-for="user in users" :key="user.id" :value="user.id" class="text-black">
+                                            {{ user.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">From</label>
+                                        <input v-model="filters['upload-activity'].date_from" type="date" :class="glassInput + ' [color-scheme:dark]'" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">To</label>
+                                        <input v-model="filters['upload-activity'].date_to" type="date" :class="glassInput + ' [color-scheme:dark]'" />
                                     </div>
                                 </div>
                             </div>
@@ -263,8 +293,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                 class="flex items-center justify-center gap-2 rounded-xl border border-green-400/30 bg-green-400/15 px-3 py-2.5 text-xs font-semibold text-green-300 transition hover:bg-green-400/25 active:bg-green-400/40 disabled:opacity-50"
                             >
                                 <FileSpreadsheet class="h-3.5 w-3.5" />
-                                <span class="hidden xs:inline">{{ loading === `${report.key}-excel` ? '...' : 'Excel' }}</span>
-                                <span class="xs:hidden">Excel</span>
+                                {{ loading === `${report.key}-excel` ? '...' : 'Excel' }}
                             </button>
                             <button
                                 @click="download(report.key, 'pdf')"
@@ -272,8 +301,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                 class="flex items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-400/15 px-3 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-400/25 active:bg-red-400/40 disabled:opacity-50"
                             >
                                 <FileText class="h-3.5 w-3.5" />
-                                <span class="hidden xs:inline">{{ loading === `${report.key}-pdf` ? '...' : 'PDF' }}</span>
-                                <span class="xs:hidden">PDF</span>
+                                {{ loading === `${report.key}-pdf` ? '...' : 'PDF' }}
                             </button>
                         </div>
 
@@ -286,17 +314,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
 </template>
 
 <style scoped>
-/* Custom width for extra small devices button text visibility */
-@media (min-width: 400px) {
-    .xs\:inline { display: inline; }
-    .xs\:hidden { display: none; }
-}
-@media (max-width: 399px) {
-    .xs\:inline { display: none; }
-    .xs\:hidden { display: inline; }
-}
-
-/* Ensure date picker icons are visible in dark scheme */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
