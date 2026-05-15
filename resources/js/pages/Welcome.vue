@@ -44,15 +44,6 @@ import { Head, Link } from '@inertiajs/vue3'
                     </div>
                 </div>
 
-                <!-- Login -->
-                <div class="flex gap-4">
-                    <Link
-                        href="/login"
-                        class="rounded-xl bg-emerald-600 px-5 py-2 text-white transition hover:bg-emerald-700"
-                    >
-                        Login
-                    </Link>
-                </div>
             </header>
 
             <!-- Hero Section -->
