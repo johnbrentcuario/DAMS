@@ -254,91 +254,79 @@ const completionColor = (rate: number) => {
                 </div>
 
                 <!-- Cards Grid -->
-                <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
-                    <div
-                        v-for="list in filteredLists"
-                        :key="list.id"
-                        class="flex flex-col min-h-[320px] rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl cursor-pointer transition hover:bg-white/15 hover:shadow-2xl border-t-4"
-                        :style="{ borderTopColor: list.color || '#6366f1' }"
-                        @click="openViewDialog(list)"
-                    >
-                        <!-- Card Header -->
-                        <div class="p-4 pb-0 shrink-0">
-                            <div class="flex items-start justify-between gap-2">
-                                <span class="font-semibold text-base leading-tight truncate min-w-0 flex-1 text-white">
-                                    {{ list.name }}
-                                </span>
-                                <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-medium text-gray-200 shrink-0 border border-white/20">
-                                    <Folder class="h-3 w-3" />
-                                    {{ list.files_count || 0 }}
-                                </div>
-                            </div>
-
-                            <!-- Completion Rate Bar -->
-                            <div v-if="(list.files_count ?? 0) > 0" class="mt-2">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-[10px] text-gray-300">Completion</span>
-                                    <span class="text-[10px] font-semibold" :style="{ color: completionColor(list.completion_rate ?? 0) }">
-                                        {{ list.complete_count }}/{{ list.files_count }} ({{ list.completion_rate }}%)
-                                    </span>
-                                </div>
-                                <div class="w-full bg-white/10 rounded-full h-1.5">
-                                    <div
-                                        class="h-full rounded-full transition-all duration-500"
-                                        :style="{
-                                            width: (list.completion_rate ?? 0) + '%',
-                                            backgroundColor: completionColor(list.completion_rate ?? 0)
-                                        }"
-                                    />
-                                </div>
-                            </div>
-                            <div v-else class="mt-2">
-                                <span class="text-[10px] text-gray-400 italic">No folders assigned</span>
-                            </div>
-                        </div>
-
-                        <!-- Card Body -->
-                        <div class="flex-1 flex flex-col px-4 pb-4 pt-2 min-h-0">
-                            <p class="text-[9px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 shrink-0">
-                                Checklist ({{ list.requirements?.length ?? 0 }})
-                            </p>
-
-                            <div class="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
-                                <ul v-if="list.requirements?.length" class="space-y-1.5">
-                                    <li v-for="req in list.requirements" :key="req" class="text-xs flex items-start gap-2 text-gray-200">
-                                        <CheckCircle2 class="h-3 w-3 mt-0.5 shrink-0" :style="{ color: list.color || '#10b981' }" />
-                                        <span class="leading-snug truncate">{{ req }}</span>
-                                    </li>
-                                </ul>
-                                <p v-else class="text-[11px] text-gray-400 italic py-3 border border-white/10 rounded-md text-center bg-white/5">
-                                    No items set.
-                                </p>
-                            </div>
-
-                            <!-- Action bar -->
-                            <div class="flex gap-1.5 mt-3 pt-3 border-t border-white/10 shrink-0" @click.stop>
-                                <button
-                                    @click="openEditDialog(list)"
-                                    class="h-8 w-8 shrink-0 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center text-gray-200 transition hover:bg-white/20"
-                                >
-                                    <Pencil class="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    @click="openDeleteDialog(list)"
-                                    class="h-8 w-8 shrink-0 rounded-lg border border-red-400/30 bg-red-400/10 flex items-center justify-center text-red-300 transition hover:bg-red-400/20"
-                                >
-                                    <Trash2 class="h-3.5 w-3.5" />
-                                </button>
-                                <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
-                                    <button class="w-full h-8 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center gap-1 text-xs font-medium text-gray-200 transition hover:bg-white/20">
-                                        <ExternalLink class="h-3.5 w-3.5 shrink-0" />
-                                        <span class="truncate">View Folders</span>
-                                    </button>
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
+<div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
+    <div
+        v-for="list in filteredLists"
+        :key="list.id"
+        class="flex flex-col rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl cursor-pointer transition hover:bg-white/15 hover:shadow-2xl border-t-4"
+        :style="{ borderTopColor: list.color || '#6366f1' }"
+        @click="openViewDialog(list)"
+    >
+        <!-- Card Header -->
+        <div class="p-5 pb-0 shrink-0">
+            <div class="flex items-start justify-between gap-3">
+                <span class="font-semibold text-lg leading-snug truncate min-w-0 flex-1 text-white">
+                    {{ list.name }}
+                </span>
+                <div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/10 text-xs font-medium text-gray-200 shrink-0 border border-white/20">
+                    <Folder class="h-3.5 w-3.5" />
+                    {{ list.files_count || 0 }}
                 </div>
+            </div>
+
+            <!-- Completion Rate Bar -->
+            <div v-if="(list.files_count ?? 0) > 0" class="mt-3.5">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-xs text-gray-300">Completion</span>
+                    <span class="text-xs font-semibold" :style="{ color: completionColor(list.completion_rate ?? 0) }">
+                        {{ list.complete_count }}/{{ list.files_count }} ({{ list.completion_rate }}%)
+                    </span>
+                </div>
+                <div class="w-full bg-white/10 rounded-full h-2">
+                    <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :style="{
+                            width: (list.completion_rate ?? 0) + '%',
+                            backgroundColor: completionColor(list.completion_rate ?? 0)
+                        }"
+                    />
+                </div>
+            </div>
+            <div v-else class="mt-3.5">
+                <span class="text-xs text-gray-400 italic">No folders assigned</span>
+            </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="px-5 pb-5 pt-4">
+            <p class="text-[10px] font-bold text-gray-300 uppercase tracking-wider">
+                Checklist ({{ list.requirements?.length ?? 0 }})
+            </p>
+
+            <!-- Action bar -->
+            <div class="flex gap-2 mt-4 pt-4 border-t border-white/10" @click.stop>
+                <button
+                    @click="openEditDialog(list)"
+                    class="h-9 w-9 shrink-0 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center text-gray-200 transition hover:bg-white/20"
+                >
+                    <Pencil class="h-4 w-4" />
+                </button>
+                <button
+                    @click="openDeleteDialog(list)"
+                    class="h-9 w-9 shrink-0 rounded-lg border border-red-400/30 bg-red-400/10 flex items-center justify-center text-red-300 transition hover:bg-red-400/20"
+                >
+                    <Trash2 class="h-4 w-4" />
+                </button>
+                <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
+                    <button class="w-full h-9 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-200 transition hover:bg-white/20">
+                        <ExternalLink class="h-4 w-4 shrink-0" />
+                        <span class="truncate">View Folders</span>
+                    </button>
+                </Link>
+            </div>
+        </div>
+    </div>
+</div>
 
             </div><!-- /relative z-10 -->
         </div><!-- /bg wrapper -->

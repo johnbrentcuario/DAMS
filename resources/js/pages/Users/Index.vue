@@ -4,7 +4,7 @@ import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Pencil, Trash2, Plus, X, Search } from 'lucide-vue-next';
+import { Pencil, Trash2, Plus, X, Search, Eye, EyeOff } from 'lucide-vue-next';
 
 interface User {
     id: number;
@@ -48,12 +48,16 @@ const form = useForm({
     password_confirmation: '',
 });
 
+const showPassword            = ref(false);
+const showPasswordConfirm     = ref(false);
+
 function openCreate() {
     editingUser.value = null;
     form.reset();
     form.role = 'user';
     form.clearErrors();
     showModal.value = true;
+
 }
 
 function openEdit(user: User) {
@@ -73,6 +77,8 @@ function closeModal() {
     editingUser.value = null;
     form.reset();
     form.clearErrors();
+    showPassword.value = false;
+    showPasswordConfirm.value = false;
 }
 
 function submitForm() {
@@ -344,31 +350,49 @@ const roleStyles: Record<string, string> = {
                             </div>
 
                             <!-- Password Fields -->
-                            <div class="pt-4 space-y-4 border-t border-gray-100 dark:border-gray-700">
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                                        Password <span v-if="editingUser" class="lowercase font-normal opacity-70">(Leave blank to keep current)</span>
-                                    </label>
-                                    <input
-                                        v-model="form.password"
-                                        type="password"
-                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                                        :class="{ 'border-red-400 ring-red-100': form.errors.password }"
-                                        placeholder="••••••••"
-                                    />
-                                    <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
-                                </div>
+                            <div>
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+        Password <span v-if="editingUser" class="lowercase font-normal opacity-70">(Leave blank to keep current)</span>
+    </label>
+    <div class="relative">
+        <input
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+            :class="{ 'border-red-400 ring-red-100': form.errors.password }"
+            placeholder="••••••••"
+        />
+        <button
+            type="button"
+            @click="showPassword = !showPassword"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+        >
+            <EyeOff v-if="showPassword" class="h-4 w-4" />
+            <Eye v-else class="h-4 w-4" />
+        </button>
+    </div>
+    <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
+</div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Confirm Password</label>
-                                    <input
-                                        v-model="form.password_confirmation"
-                                        type="password"
-                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                            </div>
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Confirm Password</label>
+    <div class="relative">
+        <input
+            v-model="form.password_confirmation"
+            :type="showPasswordConfirm ? 'text' : 'password'"
+            class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="••••••••"
+        />
+        <button
+            type="button"
+            @click="showPasswordConfirm = !showPasswordConfirm"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+        >
+            <EyeOff v-if="showPasswordConfirm" class="h-4 w-4" />
+            <Eye v-else class="h-4 w-4" />
+        </button>
+    </div>
+</div>
                         </div>
 
                         <!-- Footer -->
