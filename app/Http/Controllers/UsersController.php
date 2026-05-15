@@ -28,7 +28,7 @@ class UsersController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'id_number' => ['required', 'string', 'max:255', 'unique:users'],
-            'role'      => ['required', 'in:admin,staff'],
+            'role'      => ['required', 'in:admin,user'],
             'password'  => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -55,7 +55,7 @@ class UsersController extends Controller
         'name'      => ['required', 'string', 'max:255'],
         'email'     => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
         'id_number' => ['required', 'string', 'max:255', 'unique:users,id_number,' . $user->id],
-        'role'      => ['required', 'in:admin,staff'],
+        'role'      => ['required', 'in:admin,user'],
         'password'  => ['nullable', 'confirmed', Rules\Password::defaults()],
     ]);
 

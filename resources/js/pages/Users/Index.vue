@@ -11,7 +11,7 @@ interface User {
     name: string;
     email: string;
     id_number: string;
-    role: 'admin' | 'staff';
+    role: 'admin' | 'user';
     created_at: string;
 }
 
@@ -48,7 +48,7 @@ const form = useForm({
     name: '',
     email: '',
     id_number: '',
-    role: 'staff' as 'admin' | 'staff',
+    role: 'user' as 'admin' | 'user',
     password: '',
     password_confirmation: '',
 });
@@ -56,7 +56,7 @@ const form = useForm({
 function openCreate() {
     editingUser.value = null;
     form.reset();
-    form.role = 'staff';
+    form.role = 'user';
     form.clearErrors();
     showModal.value = true;
 }
@@ -115,7 +115,7 @@ function formatDate(dateStr: string) {
 
 const roleStyles: Record<string, string> = {
     admin: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    staff: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    user: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
 };
 </script>
 
@@ -343,7 +343,7 @@ const roleStyles: Record<string, string> = {
                                         v-model="form.role"
                                         class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     >
-                                        <option value="staff">Staff</option>
+                                        <option value="user">User</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
@@ -415,7 +415,7 @@ const roleStyles: Record<string, string> = {
                         </div>
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirm Deletion</h2>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-                            Are you sure you want to delete <strong class="text-gray-900 dark:text-white">{{ deletingUser?.name }}</strong>? This action will remove all associated data and cannot be undone.
+                            Are you sure you want to delete <strong class="text-gray-900 dark:text-white">{{ deletingUser?.name }}</strong>?
                         </p>
                         <div class="flex gap-3">
                             <button

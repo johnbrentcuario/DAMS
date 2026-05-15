@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3'
 </script>
 
 <template>
-    <Head title="D. - Digital Archive & Mapping System" />
+    <Head title="Digital Archive & Mapping System" />
 
     <div
         class="relative min-h-screen bg-cover bg-center"
