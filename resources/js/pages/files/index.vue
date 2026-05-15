@@ -426,7 +426,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
 </script>
 
 <template>
-  <Head title="Folders Management" />
+  <Head title="Inactive 201 Files" />
   <TooltipProvider>
     <AppLayout>
 
@@ -441,14 +441,14 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           <!-- Header -->
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-white drop-shadow-md">Personnel Folder</h1>
+              <h1 class="text-3xl font-bold text-white drop-shadow-md">Separated Personnel & Employees</h1>
               <p class="mt-1 text-sm text-gray-200">{{ files.total }} Records Found</p>
             </div>
 
             <Dialog v-model:open="isCreateDialogOpen">
               <DialogTrigger as-child>
                 <button class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95">
-                  <Plus class="h-5 w-5" /> New Folder
+                  <Plus class="h-5 w-5" /> Add Record
                 </button>
               </DialogTrigger>
               <DialogContent class="sm:max-w-[500px]">
@@ -843,7 +843,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 </div>
               </div>
               <div v-if="editForm.physical_location_id" class="space-y-2">
-                <Label>Specific Storage Path</Label>
+                <Label>Specific Storage Location</Label>
                 <select v-model="editForm.physical_path" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none" required>
                   <option value="">Select Location</option>
                   <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>

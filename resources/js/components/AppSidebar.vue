@@ -27,7 +27,7 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Folders',
+        title: 'Inactive 201 Files',
         href: '/files',
         icon: Folder,
     },

@@ -103,7 +103,7 @@ class ReportsController extends Controller
     {
         $listId     = $request->list_id;
         $locationId = $request->location_id;
-        $headings   = ['Full Name', 'Employment Type', 'Location', 'Physical Path', 'Attachments', 'Required Docs', 'Created'];
+        $headings   = ['Full Name', 'Employment Type', 'Location', 'Physical Location', 'Attachments', 'Required Docs', 'Created'];
 
         $rows = File::with('list', 'physical_location')
             ->when($listId, fn($q) => $q->where('list_id', $listId))
@@ -113,7 +113,7 @@ class ReportsController extends Controller
                 'Full Name'       => $file->fullname,
                 'Employment Type' => $file->list?->name ?? 'N/A',
                 'Location'        => $file->physical_location?->name ?? 'N/A',
-                'Physical Path'   => $file->physical_path ?? 'N/A',
+                'Physical Location' => $file->physical_path ?? 'N/A',
                 'Attachments'     => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
                 'Required Docs'   => count($file->list?->requirements ?? []),
                 'Created'         => $file->created_at->format('M d, Y'),
@@ -146,12 +146,12 @@ class ReportsController extends Controller
 
     private function exportLocations(string $format)
     {
-        $headings = ['Location', 'Total Folders', 'Storage Paths'];
+        $headings = ['Location', 'Total Folders', 'Storage Locations'];
 
         $rows = PhysicalLocation::withCount('files')->get()->map(fn($loc) => [
             'Location'      => $loc->name,
             'Total Folders' => $loc->files_count,
-            'Storage Paths' => implode(', ', $loc->storage_paths ?? []),
+            'Storage Locations' => implode(', ', $loc->storage_paths ?? []),
         ])->toArray();
 
         if ($format === 'excel') {

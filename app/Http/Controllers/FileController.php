@@ -330,13 +330,13 @@ class FileController extends Controller
             ->whereIn('id', $ids)
             ->get();
 
-        $headings = ['Full Name', 'Employment Type', 'Location', 'Physical Path', 'Attachments', 'Required Docs'];
+        $headings = ['Full Name', 'Employment Type', 'Location', 'Physical Location', 'Attachments', 'Required Docs'];
 
         $rows = $files->map(fn($file) => [
             'Full Name'       => $file->fullname,
             'Employment Type' => $file->list?->name ?? 'N/A',
             'Location'        => $file->physical_location?->name ?? 'N/A',
-            'Physical Path'   => $file->physical_path ?? 'N/A',
+            'Physical Location' => $file->physical_path ?? 'N/A',
             'Attachments'     => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
             'Required Docs'   => count($file->list?->requirements ?? []),
         ])->toArray();
