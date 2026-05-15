@@ -106,14 +106,11 @@ function deleteMode() {
     });
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
-const breadcrumbs = [
-    { title: 'Mode of Separation', href: '/separation-modes' },
-];
+
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout>
         <div class="flex flex-col gap-6 p-6">
 
             <!-- Header -->

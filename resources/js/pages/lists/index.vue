@@ -149,8 +149,6 @@ const completionColor = (rate: number) => {
 </script>
 
 <template>
-    <Head title="Employment Types" />
-
     <AppLayout>
         <!-- ── Same background as Activity Log ── -->
         <div

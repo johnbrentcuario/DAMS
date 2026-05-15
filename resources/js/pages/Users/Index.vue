@@ -25,11 +25,6 @@ interface PaginatedUsers {
 }
 
 const props = defineProps<{ users: PaginatedUsers }>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'User Management', href: '/users' },
-];
-
 const showModal         = ref(false);
 const editingUser       = ref<User | null>(null);
 const showDeleteConfirm = ref(false);
@@ -120,8 +115,7 @@ const roleStyles: Record<string, string> = {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="User Management" />
+    <AppLayout>
 
         <!-- Background Wrapper -->
         <div

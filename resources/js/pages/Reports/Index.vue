@@ -30,10 +30,6 @@ const props = defineProps<{
     users: User[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Reports', href: '/reports' },
-];
-
 const loading = ref<string | null>(null);
 
 const filters = ref({
@@ -146,8 +142,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Reports" />
+    <AppLayout>
 
         <div
             class="relative min-h-screen bg-cover bg-center bg-fixed"

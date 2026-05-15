@@ -124,8 +124,6 @@ const confirmDelete = () => {
 </script>
 
 <template>
-    <Head title="Physical Archive Map" />
-
     <AppLayout>
         <!-- ── Same background as Activity Log ── -->
         <div

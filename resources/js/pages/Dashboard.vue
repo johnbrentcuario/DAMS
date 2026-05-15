@@ -54,7 +54,6 @@ const completionRate = computed(() => {
 </script>
 
 <template>
-    <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
 

@@ -426,7 +426,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
 </script>
 
 <template>
-  <Head title="Inactive 201 Files" />
   <TooltipProvider>
     <AppLayout>
 

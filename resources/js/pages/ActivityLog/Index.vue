@@ -37,10 +37,6 @@ const props = defineProps<{
     filters: Filters;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Activity Log', href: '/activity-log' },
-];
-
 const search = ref(props.filters.search ?? '');
 const module = ref(props.filters.module ?? '');
 const action = ref(props.filters.action ?? '');
@@ -132,9 +128,7 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Activity Log" />
-
+    <AppLayout>
         <div
             class="relative min-h-screen bg-cover bg-center bg-fixed"
             style="background-image: url('/images/landingbg.png')"
