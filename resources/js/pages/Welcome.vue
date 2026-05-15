@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3'
 </script>
 
 <template>
-    <Head title="D.A.M.S. - Digital Archive & Mapping System" />
+    <Head title="D. - Digital Archive & Mapping System" />
 
     <div
         class="relative min-h-screen bg-cover bg-center"
@@ -31,7 +31,7 @@ import { Head, Link } from '@inertiajs/vue3'
                     <!-- System Name -->
                     <div>
                         <h1 class="text-3xl font-extrabold tracking-wide">
-                            D.A.M.S.
+                            DAMS
                         </h1>
 
                         <p class="text-sm text-white/80">
@@ -59,13 +59,13 @@ import { Head, Link } from '@inertiajs/vue3'
             <main class="flex flex-1 items-center px-8 py-16">
                 <div class="max-w-4xl text-white">
                     <h2 class="mb-6 text-5xl font-extrabold leading-tight">
-                        Resigned Employee Digital Archive & Mapping System
+                        Separated Employee Digital Archive & Mapping System
                     </h2>
 
                     <p class="mb-8 text-lg leading-relaxed text-white/90">
-                        D.A.M.S. is a centralized platform designed to manage,
-                        archive, track, and organize records of resigned
-                        employees including employment documents,
+                        DAMS is a centralized platform designed to manage,
+                        archive, track, and organize records of separated
+                        employees, including employment documents,
                         requirements, storage locations, and reports
                         securely and efficiently.
                     </p>
@@ -100,8 +100,8 @@ import { Head, Link } from '@inertiajs/vue3'
                     </h3>
 
                     <p class="mx-auto mb-12 max-w-3xl text-center text-white/80">
-                        D.A.M.S. helps the organization securely manage
-                        and archive resigned employee records, documents,
+                        DAMS helps the organization securely manage
+                        and archive separated employee records, documents,
                         locations, and reports in one centralized system.
                     </p>
 
@@ -109,79 +109,78 @@ import { Head, Link } from '@inertiajs/vue3'
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">📁</div>
+                            <!-- Blue Monochrome Filter Applied Below -->
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">📁</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
-                                Employee Folder Management
+                                Inactive 201 Folder Management
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
                                 Create and organize digital folders for
-                                resigned employees with complete
-                                employment details and records.
+                                separated employees records.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">📄</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">📄</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Requirement Tracking
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Track missing and completed resignation
-                                requirements and supporting documents.
+                                Track separation requirements and supporting documents
+                                to ensure full administrative compliance.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">🗺️</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">🗺️</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Physical File Mapping
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Locate physical employee folders through
+                                Locate physical employee records through
                                 mapped storage locations and storage paths.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">🔍</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">🔍</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Global Search
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Quickly search employee folders,
+                                Quickly search separated employee records,
                                 users, and physical storage locations.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">📊</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">📊</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Reports & Export
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Generate PDF and Excel reports for
-                                employee folders, missing documents,
-                                activity logs, and storage locations.
+                                Generate PDF and Excel reports of
+                                Inactive 201 Files.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">📝</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">📝</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Activity Monitoring
@@ -189,27 +188,27 @@ import { Head, Link } from '@inertiajs/vue3'
 
                             <p class="leading-relaxed text-white/80">
                                 Monitor all user actions including
-                                creation, updates, deletion, and exports.
+                                creation, updates, deletion.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">👥</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">👥</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 User Management
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Manage administrator and staff accounts
+                                Manage administrator and user accounts
                                 with secure role-based access control.
                             </p>
                         </div>
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">📈</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">📈</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Dashboard Analytics
@@ -223,14 +222,14 @@ import { Head, Link } from '@inertiajs/vue3'
 
                         <!-- Feature -->
                         <div class="rounded-2xl border border-white/20 bg-white/10 p-6">
-                            <div class="mb-4 text-4xl">🔒</div>
+                            <div class="mb-4 text-4xl" style="filter: sepia(100%) hue-rotate(190deg) saturate(500%);">🔒</div>
 
                             <h4 class="mb-3 text-2xl font-semibold">
                                 Data Security
                             </h4>
 
                             <p class="leading-relaxed text-white/80">
-                                Protect confidential resigned employee
+                                Secure confidentiality of separated employees
                                 records through secure data handling
                                 and privacy compliance.
                             </p>
@@ -245,7 +244,7 @@ import { Head, Link } from '@inertiajs/vue3'
                 <div class="mx-auto max-w-6xl text-white">
 
                     <h3 class="mb-10 text-center text-4xl font-bold">
-                        How to Use D.A.M.S.
+                        How to Use DAMS
                     </h3>
 
                     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -271,8 +270,8 @@ import { Head, Link } from '@inertiajs/vue3'
                             </h4>
 
                             <p class="text-white/80">
-                                Create folders and upload documents
-                                for resigned employees.
+                                Create records and upload documents
+                                for separated employees.
                             </p>
                         </div>
 
@@ -280,12 +279,12 @@ import { Head, Link } from '@inertiajs/vue3'
                             <div class="mb-4 text-4xl">3️⃣</div>
 
                             <h4 class="mb-3 text-xl font-semibold">
-                                Track Requirements
+                                Track Records
                             </h4>
 
                             <p class="text-white/80">
-                                Monitor missing and completed
-                                employee requirements.
+                                Monitor the status of separated employee records,
+                                requirements, and storage locations.
                             </p>
                         </div>
 
@@ -321,12 +320,12 @@ import { Head, Link } from '@inertiajs/vue3'
                         This system complies with Republic Act No. 10173,
                         also known as the Data Privacy Act of 2012,
                         ensuring that all personal and organizational data
-                        are processed securely and responsibly.
+                        is processed securely and responsibly.
                     </p>
 
                     <p class="leading-relaxed text-white/80">
-                        D.A.M.S. implements appropriate security measures to
-                        protect resigned employee records, archived documents,
+                        DAMS implements appropriate security measures to
+                        protect separated employee records, archived documents,
                         and confidential information in accordance with the
                         standards established by the National Privacy
                         Commission (NPC).
@@ -336,7 +335,7 @@ import { Head, Link } from '@inertiajs/vue3'
 
             <!-- Footer -->
             <footer class="bg-black px-8 py-6 text-center text-sm text-white/60">
-                © 2026 D.A.M.S. — Digital Archive & Mapping System <br />
+                © 2026 DAMS — Digital Archive & Mapping System <br />
                 National Irrigation Administration <br />
                 All Rights Reserved.
             </footer>
