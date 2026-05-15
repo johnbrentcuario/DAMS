@@ -94,7 +94,7 @@ class FileController extends Controller
             'files',
             "Created folder \"{$file->fullname}\" | Employment Type: " . ($list?->name ?? 'None') .
             " | Location: " . ($location?->name ?? 'None') .
-            " | Separation: " . ($separationMode?->name ?? 'None')
+            " | Separation: " . ($separationMode?->name ?? 'None') .
             ($validated['physical_path'] ? " | Path: {$validated['physical_path']}" : '')
         );
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, Link, router, useForm } from '@inertiajs/vue3'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import {
     Plus, Pencil, Trash2, CheckCircle2, X,
-    AlertTriangle, Folder, Lock, ExternalLink, Search
+    AlertTriangle, Folder, Lock, ExternalLink, Search, ShieldAlert
 } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
 
@@ -31,6 +31,10 @@ const props = defineProps<{
         created_at: string
     }>
 }>()
+
+// --- Auth ---
+const page    = usePage()
+const isAdmin = computed(() => (page.props.auth as any)?.user?.role === 'admin')
 
 // --- Search & Sort ---
 const searchQuery = ref('')
@@ -59,10 +63,13 @@ const filteredLists = computed(() => {
 })
 
 /* Modal States */
-const isCreateDialogOpen = ref(false)
-const isEditDialogOpen   = ref(false)
-const isDeleteDialogOpen = ref(false)
-const isViewDialogOpen   = ref(false)
+const isCreateDialogOpen         = ref(false)
+const isEditDialogOpen           = ref(false)
+const isDeleteDialogOpen         = ref(false)
+const isViewDialogOpen           = ref(false)
+const isRemoveRequirementConfirm = ref(false)
+const pendingRemoveIndex         = ref<number | null>(null)
+const pendingRemoveForm          = ref<any>(null)
 
 const editingList    = ref<any>(null)
 const listToDelete   = ref<any>(null)
@@ -87,8 +94,29 @@ const editForm = useForm({
     requirements: [] as string[]
 })
 
-const addRequirement    = (form: any) => form.requirements.push('')
-const removeRequirement = (form: any, index: number) => form.requirements.splice(index, 1)
+const addRequirement = (form: any) => form.requirements.push('')
+
+// Instead of removing directly, show a confirmation dialog for admins
+const requestRemoveRequirement = (form: any, index: number) => {
+    pendingRemoveForm.value          = form
+    pendingRemoveIndex.value         = index
+    isRemoveRequirementConfirm.value = true
+}
+
+const confirmRemoveRequirement = () => {
+    if (pendingRemoveForm.value !== null && pendingRemoveIndex.value !== null) {
+        pendingRemoveForm.value.requirements.splice(pendingRemoveIndex.value, 1)
+    }
+    isRemoveRequirementConfirm.value = false
+    pendingRemoveForm.value          = null
+    pendingRemoveIndex.value         = null
+}
+
+const cancelRemoveRequirement = () => {
+    isRemoveRequirementConfirm.value = false
+    pendingRemoveForm.value          = null
+    pendingRemoveIndex.value         = null
+}
 
 const openViewDialog = (list: any) => {
     viewList.value         = list
@@ -150,15 +178,12 @@ const completionColor = (rate: number) => {
 
 <template>
     <AppLayout>
-        <!-- ── Same background as Activity Log ── -->
         <div
             class="relative min-h-screen bg-cover bg-center bg-fixed"
             style="background-image: url('/images/landingbg.png')"
         >
-            <!-- Dark Overlay -->
             <div class="absolute inset-0 bg-black/40"></div>
 
-            <!-- Main Content -->
             <div class="relative z-10 flex flex-col gap-6 p-6">
 
                 <!-- Header -->
@@ -198,9 +223,16 @@ const completionColor = (rate: number) => {
                                         <div class="space-y-2 border rounded-lg p-3 bg-muted/30 dark:bg-slate-950/50">
                                             <div v-for="(_, index) in createForm.requirements" :key="index" class="flex gap-2">
                                                 <Input v-model="createForm.requirements[index]" placeholder="e.g. ID Copy" class="bg-background h-8 text-sm" />
-                                                <Button type="button" variant="ghost" size="icon" @click="removeRequirement(createForm, index)" class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
-                                                    <X class="h-4 w-4" />
-                                                </Button>
+                                                <!-- Non-admins cannot remove requirements -->
+                                                <Button
+    type="button"
+    variant="ghost"
+    size="icon"
+    @click="requestRemoveRequirement(createForm, index)"
+    class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+>
+    <X class="h-4 w-4" />
+</Button>
                                             </div>
                                             <Button type="button" variant="outline" size="sm" class="w-full mt-1 bg-background text-xs" @click="addRequirement(createForm)">
                                                 <Plus class="h-3 w-3 mr-1" /> Add Item
@@ -218,7 +250,7 @@ const completionColor = (rate: number) => {
                     </Dialog>
                 </div>
 
-                <!-- Search & Sort — single line, glass style -->
+                <!-- Search & Sort -->
                 <div class="flex items-center gap-3">
                     <div class="relative flex-1 min-w-0">
                         <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
@@ -254,85 +286,93 @@ const completionColor = (rate: number) => {
                 </div>
 
                 <!-- Cards Grid -->
-<div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
-    <div
-        v-for="list in filteredLists"
-        :key="list.id"
-        class="flex flex-col rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl cursor-pointer transition hover:bg-white/15 hover:shadow-2xl border-t-4"
-        :style="{ borderTopColor: list.color || '#6366f1' }"
-        @click="openViewDialog(list)"
-    >
-        <!-- Card Header -->
-        <div class="p-5 pb-0 shrink-0">
-            <div class="flex items-start justify-between gap-3">
-                <span class="font-semibold text-lg leading-snug truncate min-w-0 flex-1 text-white">
-                    {{ list.name }}
-                </span>
-                <div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/10 text-xs font-medium text-gray-200 shrink-0 border border-white/20">
-                    <Folder class="h-3.5 w-3.5" />
-                    {{ list.files_count || 0 }}
-                </div>
-            </div>
-
-            <!-- Completion Rate Bar -->
-            <div v-if="(list.files_count ?? 0) > 0" class="mt-3.5">
-                <div class="flex justify-between items-center mb-1.5">
-                    <span class="text-xs text-gray-300">Completion</span>
-                    <span class="text-xs font-semibold" :style="{ color: completionColor(list.completion_rate ?? 0) }">
-                        {{ list.complete_count }}/{{ list.files_count }} ({{ list.completion_rate }}%)
-                    </span>
-                </div>
-                <div class="w-full bg-white/10 rounded-full h-2">
+                <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-10">
                     <div
-                        class="h-full rounded-full transition-all duration-500"
-                        :style="{
-                            width: (list.completion_rate ?? 0) + '%',
-                            backgroundColor: completionColor(list.completion_rate ?? 0)
-                        }"
-                    />
+                        v-for="list in filteredLists"
+                        :key="list.id"
+                        class="flex flex-col rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl cursor-pointer transition hover:bg-white/15 hover:shadow-2xl border-t-4"
+                        :style="{ borderTopColor: list.color || '#6366f1' }"
+                        @click="openViewDialog(list)"
+                    >
+                        <!-- Card Header -->
+                        <div class="p-5 pb-0 shrink-0">
+                            <div class="flex items-start justify-between gap-3">
+                                <span class="font-semibold text-lg leading-snug truncate min-w-0 flex-1 text-white">
+                                    {{ list.name }}
+                                </span>
+                                <div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/10 text-xs font-medium text-gray-200 shrink-0 border border-white/20">
+                                    <Folder class="h-3.5 w-3.5" />
+                                    {{ list.files_count || 0 }}
+                                </div>
+                            </div>
+
+                            <!-- Completion Rate Bar -->
+                            <div v-if="(list.files_count ?? 0) > 0" class="mt-3.5">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="text-xs text-gray-300">Completion</span>
+                                    <span class="text-xs font-semibold" :style="{ color: completionColor(list.completion_rate ?? 0) }">
+                                        {{ list.complete_count }}/{{ list.files_count }} ({{ list.completion_rate }}%)
+                                    </span>
+                                </div>
+                                <div class="w-full bg-white/10 rounded-full h-2">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-500"
+                                        :style="{
+                                            width: (list.completion_rate ?? 0) + '%',
+                                            backgroundColor: completionColor(list.completion_rate ?? 0)
+                                        }"
+                                    />
+                                </div>
+                            </div>
+                            <div v-else class="mt-3.5">
+                                <span class="text-xs text-gray-400 italic">No folders assigned</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="px-5 pb-5 pt-4">
+                            <p class="text-[10px] font-bold text-gray-300 uppercase tracking-wider">
+                                Checklist ({{ list.requirements?.length ?? 0 }})
+                            </p>
+
+                            <!-- Action bar -->
+                            <div class="flex gap-2 mt-4 pt-4 border-t border-white/10" @click.stop>
+                                <!-- Edit: admin only -->
+                                <button
+                                    v-if="isAdmin"
+                                    @click="openEditDialog(list)"
+                                    class="h-9 w-9 shrink-0 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center text-gray-200 transition hover:bg-white/20"
+                                    title="Edit"
+                                >
+                                    <Pencil class="h-4 w-4" />
+                                </button>
+
+                                <!-- Delete: admin only -->
+                                <button
+                                    v-if="isAdmin"
+                                    @click="openDeleteDialog(list)"
+                                    class="h-9 w-9 shrink-0 rounded-lg border border-red-400/30 bg-red-400/10 flex items-center justify-center text-red-300 transition hover:bg-red-400/20"
+                                    title="Delete"
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                </button>
+
+                                <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
+                                    <button class="w-full h-9 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-200 transition hover:bg-white/20">
+                                        <ExternalLink class="h-4 w-4 shrink-0" />
+                                        <span class="truncate">View Folders</span>
+                                    </button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div v-else class="mt-3.5">
-                <span class="text-xs text-gray-400 italic">No folders assigned</span>
+
             </div>
         </div>
-
-        <!-- Card Body -->
-        <div class="px-5 pb-5 pt-4">
-            <p class="text-[10px] font-bold text-gray-300 uppercase tracking-wider">
-                Checklist ({{ list.requirements?.length ?? 0 }})
-            </p>
-
-            <!-- Action bar -->
-            <div class="flex gap-2 mt-4 pt-4 border-t border-white/10" @click.stop>
-                <button
-                    @click="openEditDialog(list)"
-                    class="h-9 w-9 shrink-0 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center text-gray-200 transition hover:bg-white/20"
-                >
-                    <Pencil class="h-4 w-4" />
-                </button>
-                <button
-                    @click="openDeleteDialog(list)"
-                    class="h-9 w-9 shrink-0 rounded-lg border border-red-400/30 bg-red-400/10 flex items-center justify-center text-red-300 transition hover:bg-red-400/20"
-                >
-                    <Trash2 class="h-4 w-4" />
-                </button>
-                <Link :href="`/files?list_id=${list.id}`" class="flex-1 min-w-0" @click.stop>
-                    <button class="w-full h-9 rounded-lg border border-white/20 bg-white/10 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-200 transition hover:bg-white/20">
-                        <ExternalLink class="h-4 w-4 shrink-0" />
-                        <span class="truncate">View Folders</span>
-                    </button>
-                </Link>
-            </div>
-        </div>
-    </div>
-</div>
-
-            </div><!-- /relative z-10 -->
-        </div><!-- /bg wrapper -->
 
         <!-- ══════════════════════════
-             DIALOGS — default shadcn
+             DIALOGS
         ══════════════════════════ -->
 
         <!-- VIEW DIALOG -->
@@ -402,7 +442,7 @@ const completionColor = (rate: number) => {
             </DialogContent>
         </Dialog>
 
-        <!-- EDIT DIALOG -->
+        <!-- EDIT DIALOG (admin only) -->
         <Dialog v-model:open="isEditDialogOpen">
             <DialogContent class="sm:max-w-[400px] max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-slate-900">
                 <DialogHeader class="p-6 pb-2">
@@ -425,7 +465,15 @@ const completionColor = (rate: number) => {
                             <div class="space-y-2 border rounded-lg p-3 bg-muted/30 dark:bg-slate-950/50">
                                 <div v-for="(_, index) in editForm.requirements" :key="index" class="flex gap-2">
                                     <Input v-model="editForm.requirements[index]" class="bg-background h-8 text-sm" />
-                                    <Button type="button" variant="ghost" size="icon" @click="removeRequirement(editForm, index)" class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
+                                    <!-- Remove button with confirmation warning -->
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        @click="requestRemoveRequirement(editForm, index)"
+                                        class="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                                        title="Remove requirement"
+                                    >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -444,7 +492,7 @@ const completionColor = (rate: number) => {
             </DialogContent>
         </Dialog>
 
-        <!-- DELETE DIALOG -->
+        <!-- DELETE DIALOG (admin only) -->
         <Dialog v-model:open="isDeleteDialogOpen">
             <DialogContent class="sm:max-w-[380px] dark:bg-slate-900">
                 <DialogHeader v-if="!isDeletionBlocked">
@@ -476,6 +524,33 @@ const completionColor = (rate: number) => {
                     </template>
                     <Button v-else variant="outline" size="sm" @click="isDeleteDialogOpen = false" class="w-full dark:border-slate-700">
                         Understood
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- REMOVE REQUIREMENT CONFIRMATION DIALOG -->
+        <Dialog v-model:open="isRemoveRequirementConfirm">
+            <DialogContent class="sm:max-w-[360px] dark:bg-slate-900">
+                <DialogHeader>
+                    <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 mb-2">
+                        <ShieldAlert class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <DialogTitle class="text-center">Remove Requirement?</DialogTitle>
+                    <DialogDescription class="text-center text-xs pt-1">
+    You are about to remove
+    <span class="font-bold text-foreground">
+        "{{ pendingRemoveForm?.requirements?.[pendingRemoveIndex ?? 0] || 'this requirement' }}"
+    </span>
+    from the checklist. This cannot be undone and may affect existing folder completion tracking.
+</DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="flex justify-center gap-2 pt-2">
+                    <Button variant="outline" size="sm" @click="cancelRemoveRequirement" class="flex-1 dark:border-slate-700">
+                        Cancel
+                    </Button>
+                    <Button variant="destructive" size="sm" @click="confirmRemoveRequirement" class="flex-1">
+                        Yes, Remove
                     </Button>
                 </DialogFooter>
             </DialogContent>
