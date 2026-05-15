@@ -168,9 +168,8 @@ const accents: { value: AccentColor; label: string; hex: string }[] = [
                 </div>
                 <div>
                     <p class="text-xs font-bold tracking-widest text-[#c9a227] uppercase">
-                        National Irrigation System
+                        Digital Archives & Mapping System
                     </p>
-                    <p class="text-xs text-green-200/70">Republic of the Philippines &middot; Portal Appearance</p>
                 </div>
             </div>
         </div>
