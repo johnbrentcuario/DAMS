@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Form, Head } from '@inertiajs/vue3';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import Heading from '@/components/Heading.vue';
@@ -10,7 +11,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/user-password';
 import { type BreadcrumbItem } from '@/types';
+import { Eye, EyeOff } from 'lucide-vue-next';
 
+const showCurrentPassword      = ref(false);
+const showNewPassword          = ref(false);
+const showConfirmPassword      = ref(false);
 </script>
 
 <template>
@@ -40,44 +45,78 @@ import { type BreadcrumbItem } from '@/types';
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
+                    <!-- Current Password -->
                     <div class="grid gap-2">
                         <Label for="current_password">Current password</Label>
-                        <Input
-                            id="current_password"
-                            name="current_password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="current-password"
-                            placeholder="Current password"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="current_password"
+                                name="current_password"
+                                :type="showCurrentPassword ? 'text' : 'password'"
+                                class="mt-1 block w-full pr-10"
+                                autocomplete="current-password"
+                                placeholder="Current password"
+                            />
+                            <button
+                                type="button"
+                                @click="showCurrentPassword = !showCurrentPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                                :title="showCurrentPassword ? 'Hide password' : 'Show password'"
+                            >
+                                <EyeOff v-if="showCurrentPassword" class="h-4 w-4" />
+                                <Eye v-else class="h-4 w-4" />
+                            </button>
+                        </div>
                         <InputError :message="errors.current_password" />
                     </div>
 
+                    <!-- New Password -->
                     <div class="grid gap-2">
                         <Label for="password">New password</Label>
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="New password"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="password"
+                                name="password"
+                                :type="showNewPassword ? 'text' : 'password'"
+                                class="mt-1 block w-full pr-10"
+                                autocomplete="new-password"
+                                placeholder="New password"
+                            />
+                            <button
+                                type="button"
+                                @click="showNewPassword = !showNewPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                                :title="showNewPassword ? 'Hide password' : 'Show password'"
+                            >
+                                <EyeOff v-if="showNewPassword" class="h-4 w-4" />
+                                <Eye v-else class="h-4 w-4" />
+                            </button>
+                        </div>
                         <InputError :message="errors.password" />
                     </div>
 
+                    <!-- Confirm Password -->
                     <div class="grid gap-2">
-                        <Label for="password_confirmation"
-                            >Confirm password</Label
-                        >
-                        <Input
-                            id="password_confirmation"
-                            name="password_confirmation"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="Confirm password"
-                        />
+                        <Label for="password_confirmation">Confirm password</Label>
+                        <div class="relative">
+                            <Input
+                                id="password_confirmation"
+                                name="password_confirmation"
+                                :type="showConfirmPassword ? 'text' : 'password'"
+                                class="mt-1 block w-full pr-10"
+                                autocomplete="new-password"
+                                placeholder="Confirm password"
+                            />
+                            <button
+                                type="button"
+                                @click="showConfirmPassword = !showConfirmPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                                :title="showConfirmPassword ? 'Hide password' : 'Show password'"
+                            >
+                                <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
+                                <Eye v-else class="h-4 w-4" />
+                            </button>
+                        </div>
                         <InputError :message="errors.password_confirmation" />
                     </div>
 
@@ -85,8 +124,7 @@ import { type BreadcrumbItem } from '@/types';
                         <Button
                             :disabled="processing"
                             data-test="update-password-button"
-                            >Save password</Button
-                        >
+                        >Save password</Button>
 
                         <Transition
                             enter-active-class="transition ease-in-out"
