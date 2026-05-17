@@ -87,7 +87,14 @@ const props = defineProps<{
   lists: FileList[]
   physical_locations: PhysicalLocation[]
   separation_modes: SeparationMode[]
-  filters: { search?: string; list_id?: string; sort?: string; missing_requirement?: string }
+  filters: {
+    search?: string
+    list_id?: string
+    sort?: string
+    missing_requirement?: string
+    separation_mode_id?: string
+    location_id?: string
+  }
 }>()
 
 /* =======================
@@ -96,6 +103,8 @@ const props = defineProps<{
 const search = ref(props.filters.search || '')
 const listId = ref(props.filters.list_id || '')
 const missingRequirement = ref(props.filters.missing_requirement || '')
+const separationModeId = ref(props.filters.separation_mode_id || '')
+const locationId = ref(props.filters.location_id || '')
 const sort = ref(props.filters.sort || 'asc')
 
 const allPossibleRequirements = computed(() => {
@@ -107,12 +116,14 @@ const allPossibleRequirements = computed(() => {
 })
 
 watchDebounced(
-  [search, listId, sort, missingRequirement],
+  [search, listId, sort, missingRequirement, separationModeId, locationId],
   () => {
     router.get('/files', {
       search: search.value || undefined,
       list_id: listId.value || undefined,
       missing_requirement: missingRequirement.value || undefined,
+      separation_mode_id: separationModeId.value || undefined,
+      location_id: locationId.value || undefined,
       sort: sort.value || undefined
     }, { preserveState: true, preserveScroll: true, replace: true })
   },
@@ -123,6 +134,8 @@ const clearFilters = () => {
   search.value = ''
   listId.value = ''
   missingRequirement.value = ''
+  separationModeId.value = ''
+  locationId.value = ''
   sort.value = 'asc'
 }
 
@@ -534,8 +547,8 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           </div>
 
           <!-- Filters -->
-          <div class="flex items-center gap-3">
-            <div class="relative flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[180px]">
               <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-300" />
               <input
                 v-model="search"
@@ -547,6 +560,14 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             <select v-model="listId" :class="glassSelect" style="width: 170px; flex-shrink: 0;">
               <option value="" class="text-black">All Employment Types</option>
               <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">{{ list.name }}</option>
+            </select>
+            <select v-model="locationId" :class="glassSelect" style="width: 160px; flex-shrink: 0;">
+              <option value="" class="text-black">All Locations</option>
+              <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id" class="text-black">{{ loc.name }}</option>
+            </select>
+            <select v-model="separationModeId" :class="glassSelect" style="width: 185px; flex-shrink: 0;">
+              <option value="" class="text-black">All Separation Modes</option>
+              <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id" class="text-black">{{ mode.name }}</option>
             </select>
             <select v-model="missingRequirement" :class="glassSelect" style="width: 190px; flex-shrink: 0;">
               <option value="" class="text-black">All Documents Present</option>
@@ -561,7 +582,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
               <option value="desc" class="text-black">Name (Z–A)</option>
             </select>
             <button
-              v-if="search || listId || missingRequirement || sort !== 'asc'"
+              v-if="search || listId || missingRequirement || separationModeId || locationId || sort !== 'asc'"
               @click="clearFilters"
               class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20"
             >

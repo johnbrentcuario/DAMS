@@ -36,6 +36,14 @@ class FileController extends Controller
             $query->where('list_id', $request->list_id);
         }
 
+        if ($request->filled('separation_mode_id')) {
+            $query->where('separation_mode_id', $request->separation_mode_id);
+        }
+
+        if ($request->filled('location_id')) {
+            $query->where('physical_location_id', $request->location_id);
+        }
+
         if ($request->filled('missing_requirement')) {
             $requirement = $request->missing_requirement;
             $query->where(function ($sub) use ($requirement) {
@@ -64,6 +72,8 @@ class FileController extends Controller
                 'search'              => $request->search,
                 'list_id'             => $request->list_id,
                 'missing_requirement' => $request->missing_requirement,
+                'separation_mode_id'  => $request->separation_mode_id,
+                'location_id'         => $request->location_id,
                 'sort'                => $sortDirection,
             ],
         ]);
@@ -115,17 +125,17 @@ class FileController extends Controller
             'delete_attachments'   => ['nullable', 'array'],
             'na_attachments'       => ['nullable', 'array'],
             'na_attachments.*'     => ['string'],
-            'separation_mode_id' => ['nullable', 'exists:separation_modes,id'],
-            'effectivity_date'   => ['nullable', 'date'],
+            'separation_mode_id'   => ['nullable', 'exists:separation_modes,id'],
+            'effectivity_date'     => ['nullable', 'date'],
         ]);
 
         $before = [
-            'name'            => $file->fullname,
-            'description'     => $file->description ?? 'empty',
-            'list'            => $file->list?->name ?? 'None',
-            'location'        => $file->physical_location?->name ?? 'None',
-            'path'            => $file->physical_path ?? 'empty',
-            'separation_mode' => $file->separationMode?->name ?? 'None',
+            'name'             => $file->fullname,
+            'description'      => $file->description ?? 'empty',
+            'list'             => $file->list?->name ?? 'None',
+            'location'         => $file->physical_location?->name ?? 'None',
+            'path'             => $file->physical_path ?? 'empty',
+            'separation_mode'  => $file->separationMode?->name ?? 'None',
             'effectivity_date' => $file->effectivity_date ?? 'None',
         ];
 
@@ -144,7 +154,6 @@ class FileController extends Controller
         }
 
         // ── 2. Mark N/A ───────────────────────────────────────────────────────
-        //    Store '__NA__' sentinel. If a real file existed, delete it first.
         foreach ($request->input('na_attachments', []) as $reqName) {
             if (isset($attachments[$reqName]) && $attachments[$reqName] !== '__NA__') {
                 Storage::disk('public')->delete($attachments[$reqName]);
@@ -156,7 +165,6 @@ class FileController extends Controller
         // ── 3. Upload new / replacement files ────────────────────────────────
         if ($request->hasFile('new_attachments')) {
             foreach ($request->file('new_attachments') as $reqName => $uploadedFile) {
-                // Uploading a real file always overrides N/A or an old file
                 if (isset($attachments[$reqName]) && $attachments[$reqName] !== '__NA__') {
                     Storage::disk('public')->delete($attachments[$reqName]);
                 }
@@ -175,33 +183,33 @@ class FileController extends Controller
             : null;
 
         $after = [
-            'name'        => $validated['fullname'],
-            'description' => $validated['description'] ?? 'empty',
-            'list'        => $newList?->name ?? 'None',
-            'location'    => $newLocation?->name ?? 'None',
-            'path'        => $validated['physical_path'] ?? 'empty',
-            'separation_mode' => $newSeparationMode?->name ?? 'None',
+            'name'             => $validated['fullname'],
+            'description'      => $validated['description'] ?? 'empty',
+            'list'             => $newList?->name ?? 'None',
+            'location'         => $newLocation?->name ?? 'None',
+            'path'             => $validated['physical_path'] ?? 'empty',
+            'separation_mode'  => $newSeparationMode?->name ?? 'None',
             'effectivity_date' => $validated['effectivity_date'] ?? 'None',
         ];
 
         $file->update([
-    'fullname'             => $validated['fullname'],
-    'description'          => $validated['description'],
-    'list_id'              => $validated['list_id'],
-    'physical_location_id' => $validated['physical_location_id'],
-    'physical_path'        => $validated['physical_path'],
-    'separation_mode_id'   => $validated['separation_mode_id'],
-    'effectivity_date'     => $validated['effectivity_date'],
-    'attachments'          => $attachments,
-]);
+            'fullname'             => $validated['fullname'],
+            'description'          => $validated['description'],
+            'list_id'              => $validated['list_id'],
+            'physical_location_id' => $validated['physical_location_id'],
+            'physical_path'        => $validated['physical_path'],
+            'separation_mode_id'   => $validated['separation_mode_id'],
+            'effectivity_date'     => $validated['effectivity_date'],
+            'attachments'          => $attachments,
+        ]);
 
         // ── Build activity log extras ─────────────────────────────────────────
         $extras = [];
         if (!empty($uploadedFiles)) {
-            $extras[] = 'Uploaded: '  . implode(', ', $uploadedFiles);
+            $extras[] = 'Uploaded: '   . implode(', ', $uploadedFiles);
         }
         if (!empty($deletedFiles)) {
-            $extras[] = 'Removed: '   . implode(', ', $deletedFiles);
+            $extras[] = 'Removed: '    . implode(', ', $deletedFiles);
         }
         if (!empty($naFiles)) {
             $extras[] = 'Marked N/A: ' . implode(', ', $naFiles);
@@ -224,7 +232,6 @@ class FileController extends Controller
 
         if ($file->attachments) {
             foreach ($file->attachments as $path) {
-                // Skip the N/A sentinel — nothing to delete from storage
                 if ($path !== '__NA__') {
                     Storage::disk('public')->delete($path);
                 }
@@ -338,12 +345,12 @@ class FileController extends Controller
         $headings = ['Full Name', 'Employment Type', 'Location', 'Physical Location', 'Attachments', 'Required Docs'];
 
         $rows = $files->map(fn($file) => [
-            'Full Name'       => $file->fullname,
-            'Employment Type' => $file->list?->name ?? 'N/A',
-            'Location'        => $file->physical_location?->name ?? 'N/A',
+            'Full Name'         => $file->fullname,
+            'Employment Type'   => $file->list?->name ?? 'N/A',
+            'Location'          => $file->physical_location?->name ?? 'N/A',
             'Physical Location' => $file->physical_path ?? 'N/A',
-            'Attachments'     => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
-            'Required Docs'   => count($file->list?->requirements ?? []),
+            'Attachments'       => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
+            'Required Docs'     => count($file->list?->requirements ?? []),
         ])->toArray();
 
         if ($format === 'excel') {
