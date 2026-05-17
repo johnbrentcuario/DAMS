@@ -29,7 +29,7 @@ import {
   FilterX, FileUp, FileText, XCircle, RotateCcw, MapPin,
   Archive, RefreshCw, AlertTriangle, FileSearch, Layers,
   FileSpreadsheet, MoveRight, X, SquareCheck, Search, MinusCircle,
-  Scissors
+  Scissors, CalendarDays
 } from 'lucide-vue-next'
 
 /* =======================
@@ -55,6 +55,7 @@ interface FileRecord {
   physical_location_id?: number
   physical_path?: string
   separation_mode_id?: number
+  effectivity_date?: string
   attachments: Record<string, string>
   list: {
     id: number
@@ -123,6 +124,21 @@ const clearFilters = () => {
   listId.value = ''
   missingRequirement.value = ''
   sort.value = 'asc'
+}
+
+/* =======================
+    Date Formatter
+======================= */
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00') // prevent timezone shift
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+const formatDateLong = (dateStr?: string) => {
+  if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00')
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 /* =======================
@@ -264,6 +280,7 @@ const createForm = useForm({
   physical_location_id: '' as number | '',
   physical_path: '',
   separation_mode_id: '' as number | '',
+  effectivity_date: '',
 })
 
 const editForm = useForm({
@@ -274,6 +291,7 @@ const editForm = useForm({
   physical_location_id: '' as number | '',
   physical_path: '',
   separation_mode_id: '' as number | '',
+  effectivity_date: '',
   new_attachments: {} as Record<string, File>,
   delete_attachments: [] as string[],
   na_attachments: [] as string[]
@@ -302,6 +320,7 @@ const openEditDialog = (file: FileRecord) => {
   editForm.physical_location_id  = file.physical_location_id || ''
   editForm.physical_path         = file.physical_path || ''
   editForm.separation_mode_id    = file.separation_mode_id || ''
+  editForm.effectivity_date      = file.effectivity_date || ''
   pendingUploads.value           = {}
   pendingDeletions.value         = []
   pendingNa.value = Object.entries(file.attachments ?? {})
@@ -481,14 +500,25 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                     </select>
                   </div>
-                  <!-- Mode of Separation -->
-                  <div class="space-y-2">
-                    <Label>Mode of Separation</Label>
-                    <select v-model="createForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
-                      <option value="">— None —</option>
-                      <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
-                    </select>
-                    <InputError :message="createForm.errors.separation_mode_id" />
+                  <!-- Mode of Separation + Effectivity Date -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                      <Label>Mode of Separation</Label>
+                      <select v-model="createForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
+                        <option value="">— None —</option>
+                        <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
+                      </select>
+                      <InputError :message="createForm.errors.separation_mode_id" />
+                    </div>
+                    <div class="space-y-2">
+                      <Label>Effectivity Date</Label>
+                      <input
+                        type="date"
+                        v-model="createForm.effectivity_date"
+                        class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none"
+                      />
+                      <InputError :message="createForm.errors.effectivity_date" />
+                    </div>
                   </div>
                   <div class="space-y-2">
                     <Label>Remarks</Label>
@@ -603,6 +633,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <th class="px-4 py-3 text-left font-medium text-gray-200">Employment Type</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200">Location</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Mode of Separation</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Effectivity Date</th>
                   <th class="px-4 py-3 text-left font-medium text-gray-200 hidden lg:table-cell">Remarks</th>
                   <th class="px-4 py-3 text-center font-medium text-gray-200 w-40">Actions</th>
                 </tr>
@@ -656,6 +687,16 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </div>
                     <span v-else class="text-xs text-gray-400 italic">—</span>
                   </td>
+                  <!-- Effectivity Date column -->
+                  <td class="px-4 py-3 hidden xl:table-cell">
+                    <div v-if="file.effectivity_date" class="flex items-center gap-1.5">
+                      <CalendarDays class="h-3 w-3 text-sky-300 shrink-0" />
+                      <span class="text-xs text-sky-200 font-mono">
+                        {{ formatDate(file.effectivity_date) }}
+                      </span>
+                    </div>
+                    <span v-else class="text-xs text-gray-400 italic">—</span>
+                  </td>
                   <td class="px-4 py-3 text-gray-300 hidden lg:table-cell italic text-xs">
                     {{ file.description || 'N/A' }}
                   </td>
@@ -689,7 +730,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   </td>
                 </tr>
                 <tr v-if="files.data.length === 0">
-                  <td colspan="8" class="px-4 py-10 text-center text-gray-300">
+                  <td colspan="9" class="px-4 py-10 text-center text-gray-300">
                     No records found matching these filters.
                   </td>
                 </tr>
@@ -848,13 +889,23 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
-              <!-- Mode of Separation -->
-              <div class="space-y-2">
-                <Label>Mode of Separation</Label>
-                <select v-model="editForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
-                  <option value="">— None —</option>
-                  <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
-                </select>
+              <!-- Mode of Separation + Effectivity Date -->
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <Label>Mode of Separation</Label>
+                  <select v-model="editForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
+                    <option value="">— None —</option>
+                    <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id">{{ mode.name }}</option>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <Label>Effectivity Date</Label>
+                  <input
+                    type="date"
+                    v-model="editForm.effectivity_date"
+                    class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none"
+                  />
+                </div>
               </div>
               <div class="space-y-2">
                 <Label>Remarks</Label>
@@ -1049,6 +1100,15 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 </div>
                 <p v-else class="text-sm italic text-muted-foreground">Not specified.</p>
               </div>
+            </div>
+            <!-- Effectivity Date -->
+            <div class="space-y-1">
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Effectivity Date</Label>
+              <div v-if="viewingFile.effectivity_date" class="flex items-center gap-2 p-3 rounded-md border bg-sky-50/50">
+                <CalendarDays class="h-4 w-4 text-sky-500" />
+                <p class="font-medium text-slate-800">{{ formatDateLong(viewingFile.effectivity_date) }}</p>
+              </div>
+              <p v-else class="text-sm italic text-muted-foreground">Not specified.</p>
             </div>
             <div class="space-y-1">
               <Label class="text-xs text-muted-foreground uppercase tracking-wider">Remarks</Label>

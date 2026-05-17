@@ -78,6 +78,7 @@ class FileController extends Controller
             'physical_location_id' => ['nullable', 'exists:physical_locations,id'],
             'physical_path'        => ['nullable', 'string', 'max:255'],
             'separation_mode_id'   => ['nullable', 'exists:separation_modes,id'],
+            'effectivity_date'     => ['nullable', 'date'],
         ]);
 
         $file = File::create($validated);
@@ -115,6 +116,7 @@ class FileController extends Controller
             'na_attachments'       => ['nullable', 'array'],
             'na_attachments.*'     => ['string'],
             'separation_mode_id' => ['nullable', 'exists:separation_modes,id'],
+            'effectivity_date'   => ['nullable', 'date'],
         ]);
 
         $before = [
@@ -124,6 +126,7 @@ class FileController extends Controller
             'location'        => $file->physical_location?->name ?? 'None',
             'path'            => $file->physical_path ?? 'empty',
             'separation_mode' => $file->separationMode?->name ?? 'None',
+            'effectivity_date' => $file->effectivity_date ?? 'None',
         ];
 
         $attachments   = $file->attachments ?? [];
@@ -178,17 +181,19 @@ class FileController extends Controller
             'location'    => $newLocation?->name ?? 'None',
             'path'        => $validated['physical_path'] ?? 'empty',
             'separation_mode' => $newSeparationMode?->name ?? 'None',
+            'effectivity_date' => $validated['effectivity_date'] ?? 'None',
         ];
 
         $file->update([
-            'fullname'             => $validated['fullname'],
-            'description'          => $validated['description'],
-            'list_id'              => $validated['list_id'],
-            'physical_location_id' => $validated['physical_location_id'],
-            'physical_path'        => $validated['physical_path'],
-            'separation_mode_id'   => $validated['separation_mode_id'],
-            'attachments'          => $attachments,
-        ]);
+    'fullname'             => $validated['fullname'],
+    'description'          => $validated['description'],
+    'list_id'              => $validated['list_id'],
+    'physical_location_id' => $validated['physical_location_id'],
+    'physical_path'        => $validated['physical_path'],
+    'separation_mode_id'   => $validated['separation_mode_id'],
+    'effectivity_date'     => $validated['effectivity_date'],
+    'attachments'          => $attachments,
+]);
 
         // ── Build activity log extras ─────────────────────────────────────────
         $extras = [];
