@@ -121,7 +121,7 @@ class FileController extends Controller
             'physical_location_id' => ['nullable', 'exists:physical_locations,id'],
             'physical_path'        => ['nullable', 'string', 'max:255'],
             'new_attachments'      => ['nullable', 'array'],
-            'new_attachments.*'    => ['file', 'mimes:pdf,jpg,png,docx', 'max:5120'],
+            'new_attachments.*'    => ['file', 'mimes:pdf,jpg,png,docx', 'max:20480'],
             'delete_attachments'   => ['nullable', 'array'],
             'na_attachments'       => ['nullable', 'array'],
             'na_attachments.*'     => ['string'],
