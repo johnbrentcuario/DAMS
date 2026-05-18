@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Search, X, Clock, Monitor, User, Tag, FileText } from 'lucide-vue-next';
+import { Search, X, Clock, Monitor, User, Tag, FileText, Scissors, CalendarDays } from 'lucide-vue-next';
 
 interface ActivityLog {
     id: number;
@@ -111,6 +111,7 @@ const moduleLabels: Record<string, string> = {
     files: 'Folders',
     'employment-types': 'Employment Types',
     locations: 'Locations',
+    'separation-modes': 'Separation Modes',
     settings: 'Settings',
 };
 
@@ -123,7 +124,20 @@ function descriptionParts(description: string) {
     return description.split(' | ');
 }
 
-// Utility class for inputs
+function partLabelColor(part: string): string {
+    const key = part.split(': ')[0]?.toLowerCase() ?? '';
+    if (key.includes('separation')) return 'text-orange-300';
+    if (key.includes('effectivity') || key.includes('date')) return 'text-sky-300';
+    return 'text-blue-400';
+}
+
+function partLabelIcon(part: string): 'scissors' | 'calendar' | null {
+    const key = part.split(': ')[0]?.toLowerCase() ?? '';
+    if (key.includes('separation')) return 'scissors';
+    if (key.includes('effectivity') || key.includes('date')) return 'calendar';
+    return null;
+}
+
 const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none";
 </script>
 
@@ -169,6 +183,7 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                             <option value="files" class="text-black">Folders</option>
                             <option value="employment-types" class="text-black">Employment Types</option>
                             <option value="locations" class="text-black">Locations</option>
+                            <option value="separation-modes" class="text-black">Separation Modes</option>
                             <option value="settings" class="text-black">Settings</option>
                         </select>
 
@@ -190,7 +205,7 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                     </div>
                 </div>
 
-                <!-- Table Container (Horizontal Scroll on Mobile) -->
+                <!-- Table Container -->
                 <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
@@ -229,16 +244,27 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs text-white">
-                                            {{ moduleLabels[log.module] ?? log.module }}
-                                        </span>
+                                        <div class="flex items-center gap-1.5">
+                                            <Scissors v-if="log.module === 'separation-modes'" class="h-3 w-3 text-orange-300 shrink-0" />
+                                            <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs text-white">
+                                                {{ moduleLabels[log.module] ?? log.module }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="line-clamp-1 max-w-[250px] font-medium text-white">
                                             {{ descriptionParts(log.description)[0] }}
                                         </div>
-                                        <div v-if="descriptionParts(log.description).length > 1" class="mt-0.5 text-[10px] text-blue-300">
-                                            +{{ descriptionParts(log.description).length - 1 }} more details
+                                        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                            <div v-if="descriptionParts(log.description).length > 1" class="text-[10px] text-blue-300">
+                                                +{{ descriptionParts(log.description).length - 1 }} more details
+                                            </div>
+                                            <div v-if="log.description.toLowerCase().includes('separation')" class="flex items-center gap-0.5 text-[10px] text-orange-300">
+                                                <Scissors class="h-2.5 w-2.5" /> Separation
+                                            </div>
+                                            <div v-if="log.description.toLowerCase().includes('effectivity')" class="flex items-center gap-0.5 text-[10px] text-sky-300">
+                                                <CalendarDays class="h-2.5 w-2.5" /> Effectivity
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 font-mono text-[11px] text-gray-300">{{ log.ip_address ?? '—' }}</td>
@@ -299,18 +325,19 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                     </div>
 
                     <div class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-                        <!-- Action Badge -->
-                        <div class="flex gap-2">
-                             <span :class="['rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider', actionStyles[selectedLog.action]]">
+                        <!-- Action + Module Badges -->
+                        <div class="flex gap-2 flex-wrap">
+                            <span :class="['rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider', actionStyles[selectedLog.action]]">
                                 {{ selectedLog.action }}
                             </span>
-                            <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                            <span class="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                                <Scissors v-if="selectedLog.module === 'separation-modes'" class="h-3 w-3 text-orange-300" />
                                 {{ moduleLabels[selectedLog.module] ?? selectedLog.module }}
                             </span>
                         </div>
 
-                        <!-- Info Cards -->
                         <div class="space-y-4">
+                            <!-- Performed By -->
                             <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                                 <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                                     <User class="h-3.5 w-3.5" /> Performed By
@@ -323,16 +350,32 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                 </div>
                             </div>
 
+                            <!-- Description -->
                             <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                                 <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                                     <FileText class="h-3.5 w-3.5" /> Description
                                 </div>
-                                <div class="space-y-4">
+                                <div class="space-y-2">
                                     <div v-for="(part, index) in descriptionParts(selectedLog.description)" :key="index">
+                                        <!-- Main title -->
                                         <p v-if="index === 0" class="text-sm font-semibold text-white leading-relaxed">{{ part }}</p>
-                                        <div v-else class="mt-2 bg-black/20 rounded-lg p-2 border border-white/5">
+                                        <!-- Detail parts -->
+                                        <div v-else class="mt-1 rounded-lg border border-white/5 bg-black/20 p-2">
                                             <template v-if="part.includes(': ')">
-                                                <span class="block text-[10px] text-blue-400 uppercase font-bold mb-1">{{ part.split(': ')[0] }}</span>
+                                                <!-- Separation label -->
+                                                <div v-if="part.split(': ')[0].toLowerCase().includes('separation')" class="flex items-center gap-1.5 mb-1">
+                                                    <Scissors class="h-3 w-3 text-orange-300 shrink-0" />
+                                                    <span class="text-[10px] text-orange-300 uppercase font-bold">{{ part.split(': ')[0] }}</span>
+                                                </div>
+                                                <!-- Effectivity label -->
+                                                <div v-else-if="part.split(': ')[0].toLowerCase().includes('effectivity')" class="flex items-center gap-1.5 mb-1">
+                                                    <CalendarDays class="h-3 w-3 text-sky-300 shrink-0" />
+                                                    <span class="text-[10px] text-sky-300 uppercase font-bold">{{ part.split(': ')[0] }}</span>
+                                                </div>
+                                                <!-- Default label -->
+                                                <span v-else class="block text-[10px] uppercase font-bold mb-1" :class="partLabelColor(part)">
+                                                    {{ part.split(': ')[0] }}
+                                                </span>
                                                 <span class="text-sm text-gray-200 break-words">{{ part.split(': ').slice(1).join(': ') }}</span>
                                             </template>
                                             <span v-else class="text-sm text-gray-300">{{ part }}</span>
@@ -341,6 +384,7 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                 </div>
                             </div>
 
+                            <!-- Metadata -->
                             <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                                 <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                                     <Tag class="h-3.5 w-3.5" /> Metadata
@@ -366,7 +410,6 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
 </template>
 
 <style scoped>
-/* Ensure smooth transitions for drawer */
 .translate-x-full {
     transform: translateX(100%);
 }

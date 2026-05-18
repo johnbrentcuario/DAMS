@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use App\Models\FileList;
 use App\Models\PhysicalLocation;
+use App\Models\SeparationMode;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -13,9 +14,9 @@ class DashboardController extends Controller
     public function index(): Response
     {
         // Calculate missing and complete documents
-        $allFiles       = File::with('list')->get();
-        $missingCount   = 0;
-        $completeCount  = 0;
+        $allFiles      = File::with('list')->get();
+        $missingCount  = 0;
+        $completeCount = 0;
 
         foreach ($allFiles as $file) {
             $requirements = $file->list?->requirements ?? [];
@@ -34,17 +35,20 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'stats' => [
-                'totalFiles'        => File::count(),
-                'totalLists'        => FileList::count(),
-                'totalLocations'    => PhysicalLocation::count(),
-                'missingDocuments'  => $missingCount,
-                'completeDocuments' => $completeCount,
-                'listBreakdown'     => FileList::withCount('files')->get(),
-                'locationBreakdown' => PhysicalLocation::withCount('files')->get(),
-                'recentFiles'       => File::with(['list', 'physical_location'])
-                                        ->latest()
-                                        ->take(10)
-                                        ->get(),
+                'totalFiles'              => File::count(),
+                'totalLists'              => FileList::count(),
+                'totalLocations'          => PhysicalLocation::count(),
+                'missingDocuments'        => $missingCount,
+                'completeDocuments'       => $completeCount,
+                'listBreakdown'           => FileList::withCount('files')->get(),
+                'locationBreakdown'       => PhysicalLocation::withCount('files')->get(),
+                'separationModeBreakdown' => SeparationMode::withCount('files')
+                                                ->orderByDesc('files_count')
+                                                ->get(['id', 'name']),
+                'recentFiles'             => File::with(['list', 'physical_location'])
+                                                ->latest()
+                                                ->take(10)
+                                                ->get(),
             ],
             'locations' => PhysicalLocation::latest()->get(),
         ]);

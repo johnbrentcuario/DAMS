@@ -18,6 +18,7 @@ const props = defineProps<{
         completeDocuments: number;
         listBreakdown: any[];
         locationBreakdown: any[];
+        separationModeBreakdown: any[];
         recentFiles: any[];
     };
     locations: any[];
@@ -114,7 +115,7 @@ const completionRate = computed(() => {
                     </div>
                 </div>
 
-                <!-- Charts + Quick Actions -->
+                <!-- Charts Row -->
                 <div class="grid gap-4 lg:grid-cols-12">
 
                     <!-- Employment Type Breakdown -->
@@ -163,55 +164,26 @@ const completionRate = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Quick Actions -->
+                    <!-- Mode of Separation Breakdown -->
                     <div class="lg:col-span-4 rounded-2xl border border-white/20 bg-white/10 p-5 shadow-lg backdrop-blur-xl">
-                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4">Quick Actions</p>
-                        <div class="space-y-1">
-                            <Link href="/files" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                <div class="flex items-center gap-2.5">
-                                    <FileStack class="h-4 w-4 text-gray-300" />
-                                    <span class="text-sm text-gray-200">Folders</span>
+                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4">By Mode of Separation</p>
+                        <div class="space-y-4">
+                            <div v-for="mode in stats.separationModeBreakdown" :key="mode.id">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-200 truncate max-w-[140px]">{{ mode.name }}</span>
+                                    <span class="text-gray-400 text-xs shrink-0">{{ mode.files_count }}</span>
                                 </div>
-                                <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                            </Link>
-                            <Link href="/lists" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                <div class="flex items-center gap-2.5">
-                                    <Layers class="h-4 w-4 text-gray-300" />
-                                    <span class="text-sm text-gray-200">Employment Types</span>
+                                <div class="w-full bg-white/10 rounded-full h-1.5">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-500"
+                                        :style="{
+                                            width: getPercentage(mode.files_count) + '%',
+                                            backgroundColor: '#f97316'
+                                        }"
+                                    />
                                 </div>
-                                <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                            </Link>
-                            <Link href="/physical-locations" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                <div class="flex items-center gap-2.5">
-                                    <MapPin class="h-4 w-4 text-gray-300" />
-                                    <span class="text-sm text-gray-200">Locations</span>
-                                </div>
-                                <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                            </Link>
-                            <template v-if="isAdmin">
-                                <div class="border-t border-white/10 my-1" />
-                                <Link href="/users" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                    <div class="flex items-center gap-2.5">
-                                        <Users class="h-4 w-4 text-gray-300" />
-                                        <span class="text-sm text-gray-200">User Management</span>
-                                    </div>
-                                    <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                                </Link>
-                                <Link href="/activity-log" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                    <div class="flex items-center gap-2.5">
-                                        <ClipboardList class="h-4 w-4 text-gray-300" />
-                                        <span class="text-sm text-gray-200">Activity Log</span>
-                                    </div>
-                                    <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                                </Link>
-                                <Link href="/reports" class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/10 transition-colors group">
-                                    <div class="flex items-center gap-2.5">
-                                        <FileBarChart2 class="h-4 w-4 text-gray-300" />
-                                        <span class="text-sm text-gray-200">Reports</span>
-                                    </div>
-                                    <ArrowRight class="h-3.5 w-3.5 text-gray-400 group-hover:text-white transition-colors" />
-                                </Link>
-                            </template>
+                            </div>
+                            <p v-if="stats.separationModeBreakdown.length === 0" class="text-xs text-gray-400 italic text-center py-4">No data.</p>
                         </div>
                     </div>
 
