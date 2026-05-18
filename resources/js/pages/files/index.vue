@@ -144,7 +144,7 @@ const clearFilters = () => {
 ======================= */
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return null
-  const date = new Date(dateStr + 'T00:00:00') // prevent timezone shift
+  const date = new Date(dateStr + 'T00:00:00')
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
@@ -379,6 +379,8 @@ const processFileSelection = (file: File, requirement: string) => {
   }
   pendingUploads.value[requirement]  = file
   pendingDeletions.value             = pendingDeletions.value.filter(req => req !== requirement)
+  // If it was marked N/A, uploading a file un-marks it
+  pendingNa.value = pendingNa.value.filter(r => r !== requirement)
 }
 
 const removeFileLocal = (requirement: string) => {
@@ -392,10 +394,29 @@ const removeFileLocal = (requirement: string) => {
   }
 }
 
+/* =======================
+    N/A Toggle
+    - empty   → click N/A  → na
+    - na      → click N/A  → empty  (reverts to "No Record")
+    - deleted → click N/A  → na
+
+    Special case: if the record was ORIGINALLY saved as __NA__ in the
+    database, removing the N/A mark must also queue it for deletion so
+    the backend clears the __NA__ sentinel on save.
+======================= */
 const toggleNa = (requirement: string) => {
   if (pendingNa.value.includes(requirement)) {
+    // Was added to N/A in this session → just remove from pending
     pendingNa.value = pendingNa.value.filter(r => r !== requirement)
+  } else if (editingFile.value?.attachments?.[requirement] === '__NA__') {
+    // Was saved as __NA__ in the database → remove from pendingNa AND
+    // queue for deletion so the backend clears it
+    pendingNa.value = pendingNa.value.filter(r => r !== requirement)
+    if (!pendingDeletions.value.includes(requirement)) {
+      pendingDeletions.value = [...pendingDeletions.value, requirement]
+    }
   } else {
+    // Currently No Record or deleted → mark as N/A
     delete pendingUploads.value[requirement]
     pendingDeletions.value = pendingDeletions.value.filter(r => r !== requirement)
     pendingNa.value = [...pendingNa.value, requirement]
@@ -408,7 +429,11 @@ const restoreFileLocal = (requirement: string) => {
 
 const getStatus = (req: string) => {
   if (pendingNa.value.includes(req)) return 'na'
-  if (pendingDeletions.value.includes(req)) return 'deleted'
+  if (pendingDeletions.value.includes(req)) {
+    // If the original was __NA__, reverting shows as empty (No Record), not deleted
+    if (editingFile.value?.attachments?.[req] === '__NA__') return 'empty'
+    return 'deleted'
+  }
   if (pendingUploads.value[req]) return 'new'
   if (editingFile.value?.attachments?.[req] === '__NA__') return 'na'
   if (editingFile.value?.attachments?.[req]) return 'exists'
@@ -452,7 +477,6 @@ const confirmDeletion = () => {
   })
 }
 
-/* Glass-styled select matching the Activity Log inputs */
 const glassSelect = "w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
 const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-gray-300 shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
 </script>
@@ -513,7 +537,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       <option v-for="path in availableCreatePaths" :key="path" :value="path">{{ path }}</option>
                     </select>
                   </div>
-                  <!-- Mode of Separation + Effectivity Date -->
                   <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
                       <Label>Mode of Separation</Label>
@@ -698,7 +721,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </div>
                     <span v-else class="text-xs text-gray-400 italic">No mapping</span>
                   </td>
-                  <!-- Mode of Separation column -->
                   <td class="px-4 py-3 hidden xl:table-cell">
                     <div v-if="file.separation_mode" class="flex items-center gap-1.5">
                       <Scissors class="h-3 w-3 text-orange-300 shrink-0" />
@@ -708,7 +730,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     </div>
                     <span v-else class="text-xs text-gray-400 italic">—</span>
                   </td>
-                  <!-- Effectivity Date column -->
                   <td class="px-4 py-3 hidden xl:table-cell">
                     <div v-if="file.effectivity_date" class="flex items-center gap-1.5">
                       <CalendarDays class="h-3 w-3 text-sky-300 shrink-0" />
@@ -910,7 +931,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
-              <!-- Mode of Separation + Effectivity Date -->
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label>Mode of Separation</Label>
@@ -943,7 +963,9 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 <span class="text-[10px] text-muted-foreground uppercase font-bold">Changes will apply on save</span>
               </div>
               <div v-if="editingFile.list?.requirements?.length" class="grid gap-2">
-                <div v-for="req in editingFile.list.requirements" :key="req"
+                <div
+                  v-for="req in editingFile.list.requirements"
+                  :key="req"
                   class="flex items-center justify-between p-3 rounded-lg border bg-card transition-all hover:border-muted-foreground/30"
                   :class="[
                     getStatus(req) === 'deleted' ? 'opacity-60 border-destructive bg-destructive/5' : '',
@@ -956,15 +978,18 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                     <FileUp       v-else-if="getStatus(req) === 'new'"     class="h-5 w-5 text-blue-500 shrink-0 animate-pulse" />
                     <Trash2       v-else-if="getStatus(req) === 'deleted'" class="h-5 w-5 text-destructive shrink-0" />
                     <MinusCircle  v-else-if="getStatus(req) === 'na'"      class="h-5 w-5 text-gray-400 shrink-0" />
-                    <Circle       v-else                                    class="h-5 w-5 text-muted-foreground/30 shrink-0" />
+                    <XCircle      v-else                                    class="h-5 w-5 text-destructive/30 shrink-0" />
                     <div class="flex flex-col overflow-hidden">
                       <span class="text-sm font-medium truncate">{{ req }}</span>
                       <span v-if="getStatus(req) === 'new'"     class="text-[10px] text-blue-600 font-bold uppercase">Pending Upload</span>
                       <span v-if="getStatus(req) === 'deleted'" class="text-[10px] text-destructive font-bold uppercase">Marked for removal</span>
                       <span v-if="getStatus(req) === 'na'"      class="text-[10px] text-gray-400 font-bold uppercase">Not Applicable</span>
+                      <span v-if="getStatus(req) === 'empty'"   class="text-[10px] text-destructive/60 font-bold uppercase">No Record</span>
                     </div>
                   </div>
+
                   <div class="flex items-center gap-1">
+                    <!-- View existing file -->
                     <Tooltip v-if="getStatus(req) === 'exists'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
@@ -973,6 +998,8 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Open Document</TooltipContent>
                     </Tooltip>
+
+                    <!-- Remove existing or pending file -->
                     <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -981,6 +1008,8 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Remove attachment</TooltipContent>
                     </Tooltip>
+
+                    <!-- Restore deleted file -->
                     <Tooltip v-if="getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -989,6 +1018,8 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Restore original file</TooltipContent>
                     </Tooltip>
+
+                    <!-- N/A toggle — visible for empty, na, deleted states -->
                     <Tooltip v-if="getStatus(req) === 'empty' || getStatus(req) === 'na' || getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button
@@ -998,15 +1029,19 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                           :class="[
                             'h-8 w-8 transition-all',
                             getStatus(req) === 'na'
-                              ? 'text-gray-500 bg-gray-100 dark:bg-gray-700'
+                              ? 'text-gray-500 bg-gray-100 dark:bg-gray-700 ring-1 ring-gray-400'
                               : 'text-muted-foreground hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                           ]"
                         >
                           <MinusCircle class="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{{ getStatus(req) === 'na' ? 'Remove N/A mark' : 'Mark as N/A' }}</TooltipContent>
+                      <TooltipContent>
+                        {{ getStatus(req) === 'na' ? 'Remove N/A — revert to No Record' : 'Mark as N/A' }}
+                      </TooltipContent>
                     </Tooltip>
+
+                    <!-- Upload / Replace file -->
                     <div class="relative" v-if="getStatus(req) !== 'deleted' && getStatus(req) !== 'na'">
                       <input :id="`edit-input-${req}`" type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleFileUploadLocal($event, req)" />
                       <Tooltip>
@@ -1122,7 +1157,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 <p v-else class="text-sm italic text-muted-foreground">Not specified.</p>
               </div>
             </div>
-            <!-- Effectivity Date -->
             <div class="space-y-1">
               <Label class="text-xs text-muted-foreground uppercase tracking-wider">Effectivity Date</Label>
               <div v-if="viewingFile.effectivity_date" class="flex items-center gap-2 p-3 rounded-md border bg-sky-50/50">
