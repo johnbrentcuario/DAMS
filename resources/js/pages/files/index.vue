@@ -45,6 +45,7 @@ interface PhysicalLocation {
 interface SeparationMode {
   id: number
   name: string
+  color?: string
 }
 
 interface FileRecord {
@@ -723,8 +724,15 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   </td>
                   <td class="px-4 py-3 hidden xl:table-cell">
                     <div v-if="file.separation_mode" class="flex items-center gap-1.5">
-                      <Scissors class="h-3 w-3 text-orange-300 shrink-0" />
-                      <span class="inline-block rounded-md bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 text-xs font-medium text-orange-200">
+                      <Scissors class="h-3 w-3 shrink-0" :style="{ color: file.separation_mode.color ?? '#f97316' }" />
+                      <span
+                        class="inline-block rounded-md px-2 py-0.5 text-xs font-medium border"
+                        :style="{
+                          backgroundColor: (file.separation_mode.color ?? '#f97316') + '20',
+                          borderColor: (file.separation_mode.color ?? '#f97316') + '40',
+                          color: file.separation_mode.color ?? '#f97316'
+                        }"
+                      >
                         {{ file.separation_mode.name }}
                       </span>
                     </div>
@@ -1150,9 +1158,18 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
               </div>
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Mode of Separation</Label>
-                <div v-if="viewingFile.separation_mode" class="flex items-center gap-2 p-3 rounded-md border bg-orange-50/50">
-                  <Scissors class="h-4 w-4 text-orange-500" />
-                  <p class="font-medium text-slate-800">{{ viewingFile.separation_mode.name }}</p>
+                <div
+                  v-if="viewingFile.separation_mode"
+                  class="flex items-center gap-2 p-3 rounded-md border"
+                  :style="{
+                    backgroundColor: (viewingFile.separation_mode.color ?? '#f97316') + '15',
+                    borderColor: (viewingFile.separation_mode.color ?? '#f97316') + '40'
+                  }"
+                >
+                  <Scissors class="h-4 w-4 shrink-0" :style="{ color: viewingFile.separation_mode.color ?? '#f97316' }" />
+                  <p class="font-medium" :style="{ color: viewingFile.separation_mode.color ?? '#f97316' }">
+                    {{ viewingFile.separation_mode.name }}
+                  </p>
                 </div>
                 <p v-else class="text-sm italic text-muted-foreground">Not specified.</p>
               </div>

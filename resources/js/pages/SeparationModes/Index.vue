@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Plus, Pencil, Trash2, Scissors } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Scissors, FolderOpen } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ interface SeparationMode {
     id: number;
     name: string;
     description: string | null;
+    color: string | null;
+    files_count: number;
     created_at: string;
 }
 
@@ -45,6 +47,20 @@ const props = defineProps<{
     separationModes: Paginated<SeparationMode>;
 }>();
 
+// ── Preset colours ────────────────────────────────────────────────────────────
+const presetColors = [
+    '#f97316', // orange
+    '#ef4444', // red
+    '#eab308', // yellow
+    '#22c55e', // green
+    '#3b82f6', // blue
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#14b8a6', // teal
+    '#64748b', // slate
+    '#f59e0b', // amber
+]
+
 // ── Dialog state ──────────────────────────────────────────────────────────────
 const showFormDialog   = ref(false);
 const showDeleteDialog = ref(false);
@@ -55,11 +71,13 @@ const deletingMode     = ref<SeparationMode | null>(null);
 const form = useForm({
     name: '',
     description: '',
+    color: '#f97316',
 });
 
 function openCreate() {
     editingMode.value = null;
     form.reset();
+    form.color = '#f97316';
     showFormDialog.value = true;
 }
 
@@ -67,6 +85,7 @@ function openEdit(mode: SeparationMode) {
     editingMode.value    = mode;
     form.name            = mode.name;
     form.description     = mode.description ?? '';
+    form.color           = mode.color ?? '#f97316';
     showFormDialog.value = true;
 }
 
@@ -80,6 +99,7 @@ function submitForm() {
             onSuccess: () => {
                 showFormDialog.value = false;
                 form.reset();
+                form.color = '#f97316';
             },
         });
     }
@@ -108,15 +128,12 @@ function formatDate(dateStr: string) {
 <template>
     <AppLayout>
 
-        <!-- ── Same background as Activity Log ── -->
         <div
             class="relative min-h-screen bg-cover bg-center bg-fixed"
             style="background-image: url('/images/landingbg.png')"
         >
-            <!-- Dark Overlay -->
             <div class="absolute inset-0 bg-black/40"></div>
 
-            <!-- Main Content -->
             <div class="relative z-10 flex flex-col gap-6 p-6">
 
                 <!-- Header -->
@@ -143,6 +160,7 @@ function formatDate(dateStr: string) {
                             <tr class="border-b border-white/10 bg-white/10">
                                 <th class="px-4 py-3 text-left font-medium text-gray-200">Name</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-200">Description</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-200">201 Inactive Files</th>
                                 <th class="px-4 py-3 text-left font-medium text-gray-200 hidden sm:table-cell">Created</th>
                                 <th class="px-4 py-3 text-right font-medium text-gray-200">Actions</th>
                             </tr>
@@ -154,10 +172,27 @@ function formatDate(dateStr: string) {
                                 class="transition hover:bg-white/10"
                             >
                                 <td class="px-4 py-3 font-medium text-white">
-                                    {{ mode.name }}
+                                    <div class="flex items-center gap-2">
+                                        <Scissors class="h-3.5 w-3.5 shrink-0" :style="{ color: mode.color ?? '#f97316' }" />
+                                        {{ mode.name }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-gray-300 max-w-xs truncate italic">
                                     {{ mode.description || '—' }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-1.5">
+                                        <FolderOpen class="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                                        <span
+                                            class="inline-block rounded-md px-2 py-0.5 text-xs font-semibold border"
+                                            :style="mode.files_count > 0
+                                                ? { backgroundColor: (mode.color ?? '#f97316') + '20', borderColor: (mode.color ?? '#f97316') + '40', color: mode.color ?? '#f97316' }
+                                                : {}"
+                                            :class="mode.files_count === 0 ? 'bg-white/5 border-white/10 text-gray-400' : ''"
+                                        >
+                                            {{ mode.files_count }} {{ mode.files_count === 1 ? 'Record' : 'Records' }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-300 hidden sm:table-cell">
                                     {{ formatDate(mode.created_at) }}
@@ -181,7 +216,7 @@ function formatDate(dateStr: string) {
                             </tr>
 
                             <tr v-if="separationModes.data.length === 0">
-                                <td colspan="4" class="px-4 py-10 text-center text-gray-300 italic">
+                                <td colspan="5" class="px-4 py-10 text-center text-gray-300 italic">
                                     No modes of separation found. Add one to get started.
                                 </td>
                             </tr>
@@ -194,12 +229,8 @@ function formatDate(dateStr: string) {
                     Showing {{ separationModes.data.length }} of {{ separationModes.total }} entries
                 </p>
 
-            </div><!-- /relative z-10 -->
-        </div><!-- /bg wrapper -->
-
-        <!-- ══════════════════════════
-             DIALOGS — default shadcn
-        ══════════════════════════ -->
+            </div>
+        </div>
 
         <!-- Create / Edit Dialog -->
         <Dialog v-model:open="showFormDialog">
@@ -241,6 +272,27 @@ function formatDate(dateStr: string) {
                             {{ form.errors.description }}
                         </p>
                     </div>
+
+                    <!-- Color -->
+                    <div class="flex flex-col gap-2">
+                        <!-- Custom colour input -->
+                        <div class="flex items-center gap-3 mt-1">
+                            <input
+                                type="color"
+                                v-model="form.color"
+                                class="h-8 w-10 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                            />
+                            <span class="text-xs text-muted-foreground font-mono">{{ form.color }}</span>
+                            <!-- Preview badge -->
+                            <span
+                                class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold border"
+                                :style="{ backgroundColor: form.color + '20', borderColor: form.color + '40', color: form.color }"
+                            >
+                                <Scissors class="h-3 w-3" />
+                                Preview
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <DialogFooter class="gap-2">
@@ -260,6 +312,12 @@ function formatDate(dateStr: string) {
                     <AlertDialogDescription>
                         Are you sure you want to delete
                         <span class="font-semibold">{{ deletingMode?.name }}</span>?
+                        <template v-if="deletingMode && deletingMode.files_count > 0">
+                            <br /><br />
+                            <span class="text-destructive font-medium">
+                                Warning: {{ deletingMode.files_count }} Record{{ deletingMode.files_count !== 1 ? 's are' : ' is' }} currently using this mode.
+                            </span>
+                        </template>
                         This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

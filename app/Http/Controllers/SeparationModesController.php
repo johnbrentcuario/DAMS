@@ -9,19 +9,22 @@ use Inertia\Inertia;
 class SeparationModesController extends Controller
 {
     public function index()
-{
-    $separationModes = SeparationMode::latest()->paginate(15);
+    {
+        $separationModes = SeparationMode::withCount('files')
+            ->latest()
+            ->paginate(15);
 
-    return Inertia::render('SeparationModes/Index', [
-        'separationModes' => $separationModes,
-    ]);
-}
+        return Inertia::render('SeparationModes/Index', [
+            'separationModes' => $separationModes,
+        ]);
+    }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:separation_modes,name,NULL,id,deleted_at,NULL',
+            'name'        => 'required|string|max:255|unique:separation_modes,name,NULL,id,deleted_at,NULL',
             'description' => 'nullable|string|max:1000',
+            'color'       => 'nullable|string|max:20',
         ]);
 
         SeparationMode::create($validated);
@@ -32,8 +35,9 @@ class SeparationModesController extends Controller
     public function update(Request $request, SeparationMode $separationMode)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:separation_modes,name,' . $separationMode->id . ',id,deleted_at,NULL',
+            'name'        => 'required|string|max:255|unique:separation_modes,name,' . $separationMode->id . ',id,deleted_at,NULL',
             'description' => 'nullable|string|max:1000',
+            'color'       => 'nullable|string|max:20',
         ]);
 
         $separationMode->update($validated);

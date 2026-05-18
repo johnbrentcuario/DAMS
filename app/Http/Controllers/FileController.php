@@ -22,7 +22,7 @@ class FileController extends Controller
         $query = File::query()->with([
             'list:id,name,color,requirements',
             'physical_location',
-            'separationMode:id,name'
+            'separationMode:id,name,color'
         ]);
 
         if ($request->filled('search')) {
@@ -61,7 +61,7 @@ class FileController extends Controller
         $files              = $query->paginate(10)->withQueryString();
         $lists              = FileList::select(['id', 'name', 'color', 'requirements'])->get();
         $physical_locations = PhysicalLocation::select(['id', 'name', 'color', 'storage_paths'])->get();
-        $separation_modes   = SeparationMode::orderBy('name')->get(['id', 'name']);
+        $separation_modes   = SeparationMode::orderBy('name')->get(['id', 'name', 'color']);
 
         return Inertia::render('files/index', [
             'files'              => $files,

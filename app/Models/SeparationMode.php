@@ -13,6 +13,7 @@ class SeparationMode extends Model
     protected $fillable = [
         'name',
         'description',
+        'color',
     ];
 
     public function files(): HasMany
