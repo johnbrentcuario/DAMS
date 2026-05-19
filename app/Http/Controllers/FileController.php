@@ -338,19 +338,32 @@ class FileController extends Controller
         $ids    = explode(',', $request->ids ?? '');
         $format = $request->format ?? 'pdf';
 
-        $files = File::with('list', 'physical_location')
+        $files = File::with('list', 'physical_location', 'separationMode')
             ->whereIn('id', $ids)
             ->get();
 
-        $headings = ['Full Name', 'Employment Type', 'Location', 'Physical Location', 'Attachments', 'Required Docs'];
+        $headings = [
+            'Full Name',
+            'Employment Type',
+            'Location',
+            'Physical Location',
+            'Mode of Separation',
+            'Effectivity Date',
+            'Attachments',
+            'Required Docs',
+        ];
 
         $rows = $files->map(fn($file) => [
-            'Full Name'         => $file->fullname,
-            'Employment Type'   => $file->list?->name ?? 'N/A',
-            'Location'          => $file->physical_location?->name ?? 'N/A',
-            'Physical Location' => $file->physical_path ?? 'N/A',
-            'Attachments'       => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
-            'Required Docs'     => count($file->list?->requirements ?? []),
+            'Full Name'          => $file->fullname,
+            'Employment Type'    => $file->list?->name ?? 'N/A',
+            'Location'           => $file->physical_location?->name ?? 'N/A',
+            'Physical Location'  => $file->physical_path ?? 'N/A',
+            'Mode of Separation' => $file->separationMode?->name ?? 'N/A',
+            'Effectivity Date'   => $file->effectivity_date
+                ? \Carbon\Carbon::parse($file->effectivity_date)->format('M d, Y')
+                : 'Not Set',
+            'Attachments'        => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
+            'Required Docs'      => count($file->list?->requirements ?? []),
         ])->toArray();
 
         if ($format === 'excel') {

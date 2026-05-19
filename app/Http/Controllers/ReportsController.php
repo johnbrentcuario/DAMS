@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\File;
 use App\Models\FileList;
 use App\Models\PhysicalLocation;
+use App\Models\SeparationMode;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -17,9 +18,10 @@ class ReportsController extends Controller
     public function index()
     {
         return Inertia::render('Reports/Index', [
-            'lists'     => FileList::select('id', 'name')->get(),
-            'locations' => PhysicalLocation::select('id', 'name')->get(),
-            'users'     => User::select('id', 'name')->orderBy('name')->get(),
+            'lists'            => FileList::select('id', 'name')->get(),
+            'locations'        => PhysicalLocation::select('id', 'name')->get(),
+            'users'            => User::select('id', 'name')->orderBy('name')->get(),
+            'separationModes'  => SeparationMode::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
 
@@ -30,14 +32,16 @@ class ReportsController extends Controller
 
         return match($type) {
             'no-record-documents'  => $this->exportNoRecordDocuments($request, $format),
-            'complete-documents' => $this->exportCompleteDocuments($request, $format),
-            'folder-summary'     => $this->exportFolderSummary($request, $format),
-            'employment-types'   => $this->exportEmploymentTypes($format),
-            'locations'          => $this->exportLocations($format),
-            'activity-log'       => $this->exportActivityLog($request, $format),
-            'users'              => $this->exportUsers($format),
-            'upload-activity'    => $this->exportUploadActivity($request, $format),
-            default              => back()->with('error', 'Invalid report type.'),
+            'complete-documents'   => $this->exportCompleteDocuments($request, $format),
+            'folder-summary'       => $this->exportFolderSummary($request, $format),
+            'employment-types'     => $this->exportEmploymentTypes($format),
+            'locations'            => $this->exportLocations($format),
+            'activity-log'         => $this->exportActivityLog($request, $format),
+            'users'                => $this->exportUsers($format),
+            'upload-activity'      => $this->exportUploadActivity($request, $format),
+            'separation-modes'     => $this->exportSeparationModes($request, $format),
+            'effectivity-dates'    => $this->exportEffectivityDates($request, $format),
+            default                => back()->with('error', 'Invalid report type.'),
         };
     }
 
@@ -54,11 +58,11 @@ class ReportsController extends Controller
 
             if (!empty($missing) && (!$listId || $file->list_id == $listId)) {
                 $rows[] = [
-                    'Full Name'         => $file->fullname,
-                    'Employment Type'   => $file->list?->name ?? 'N/A',
-                    'Location'          => $file->physical_location?->name ?? 'N/A',
-                    'No Record Documents' => implode(', ', $missing),
-                    'No Record Count'     => count($missing),
+                    'Full Name'             => $file->fullname,
+                    'Employment Type'       => $file->list?->name ?? 'N/A',
+                    'Location'              => $file->physical_location?->name ?? 'N/A',
+                    'No Record Documents'   => implode(', ', $missing),
+                    'No Record Count'       => count($missing),
                 ];
             }
         });
@@ -110,13 +114,13 @@ class ReportsController extends Controller
             ->when($locationId, fn($q) => $q->where('physical_location_id', $locationId))
             ->get()
             ->map(fn($file) => [
-                'Full Name'       => $file->fullname,
-                'Employment Type' => $file->list?->name ?? 'N/A',
-                'Location'        => $file->physical_location?->name ?? 'N/A',
+                'Full Name'         => $file->fullname,
+                'Employment Type'   => $file->list?->name ?? 'N/A',
+                'Location'          => $file->physical_location?->name ?? 'N/A',
                 'Physical Location' => $file->physical_path ?? 'N/A',
-                'Attachments'     => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
-                'Required Docs'   => count($file->list?->requirements ?? []),
-                'Created'         => $file->created_at->format('M d, Y'),
+                'Attachments'       => count(array_filter($file->attachments ?? [], fn($v) => $v !== '__NA__')),
+                'Required Docs'     => count($file->list?->requirements ?? []),
+                'Created'           => $file->created_at->format('M d, Y'),
             ])->toArray();
 
         if ($format === 'excel') {
@@ -149,8 +153,8 @@ class ReportsController extends Controller
         $headings = ['Location', 'Total Folders', 'Storage Locations'];
 
         $rows = PhysicalLocation::withCount('files')->get()->map(fn($loc) => [
-            'Location'      => $loc->name,
-            'Total Folders' => $loc->files_count,
+            'Location'          => $loc->name,
+            'Total Folders'     => $loc->files_count,
             'Storage Locations' => implode(', ', $loc->storage_paths ?? []),
         ])->toArray();
 
@@ -166,10 +170,10 @@ class ReportsController extends Controller
         $headings = ['User', 'Role', 'Action', 'Module', 'Description', 'IP Address', 'Date & Time'];
 
         $rows = ActivityLog::query()
-            ->when($request->module, fn($q) => $q->where('module', $request->module))
-            ->when($request->action, fn($q) => $q->where('action', $request->action))
+            ->when($request->module,    fn($q) => $q->where('module', $request->module))
+            ->when($request->action,    fn($q) => $q->where('action', $request->action))
             ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->when($request->date_to,   fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
             ->latest()
             ->get()
             ->map(fn($log) => [
@@ -212,28 +216,23 @@ class ReportsController extends Controller
     {
         $headings = ['User', 'Role', 'Date', 'Folders Created', 'Files Uploaded'];
 
-        // Base query filter (shared for both created & uploaded queries)
         $baseQuery = fn($q) => $q
             ->where('module', 'files')
             ->when($request->user_id,   fn($q) => $q->where('user_id', $request->user_id))
             ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
             ->when($request->date_to,   fn($q) => $q->whereDate('created_at', '<=', $request->date_to));
 
-        // ── Folder creations ─────────────────────────────────────────────────
         $createdLogs = ActivityLog::query()
             ->where('action', 'created')
             ->tap($baseQuery)
             ->get();
 
-        // ── File uploads — 'updated' logs that mention 'Uploaded:' ───────────
         $uploadedLogs = ActivityLog::query()
             ->where('action', 'updated')
             ->where('description', 'like', '%Uploaded:%')
             ->tap($baseQuery)
             ->get();
 
-        // ── Collect all unique user+date combinations ─────────────────────────
-        // Structure: [ 'UserName' => [ 'role' => ..., 'YYYY-MM-DD' => ['created'=>n, 'uploaded'=>n] ] ]
         $data = [];
 
         foreach ($createdLogs as $log) {
@@ -248,8 +247,6 @@ class ReportsController extends Controller
             $name = $log->user_name;
             $date = $log->created_at->format('Y-m-d');
 
-            // Count how many files were uploaded in this single log entry
-            // by parsing "Uploaded: File1, File2, File3" from the description
             $uploadCount = 1;
             if (preg_match('/Uploaded:\s*([^|]+)/i', $log->description, $matches)) {
                 $uploadCount = count(array_filter(array_map('trim', explode(',', $matches[1]))));
@@ -260,7 +257,6 @@ class ReportsController extends Controller
             $data[$name]['dates'][$date]['uploaded'] = ($data[$name]['dates'][$date]['uploaded'] ?? 0) + $uploadCount;
         }
 
-        // Sort users by total activity descending
         uasort($data, function ($a, $b) {
             $totalA = array_sum(array_column($a['dates'] ?? [], 'created'))
                     + array_sum(array_column($a['dates'] ?? [], 'uploaded'));
@@ -275,13 +271,12 @@ class ReportsController extends Controller
             $totalCreated  = 0;
             $totalUploaded = 0;
             $dates = $entry['dates'] ?? [];
-            ksort($dates); // sort dates ascending
+            ksort($dates);
 
             foreach ($dates as $date => $counts) {
                 $created  = $counts['created']  ?? 0;
                 $uploaded = $counts['uploaded'] ?? 0;
 
-                // Only include the row if there's actual activity on that day
                 if ($created > 0 || $uploaded > 0) {
                     $rows[] = [
                         'User'            => $userName,
@@ -296,7 +291,6 @@ class ReportsController extends Controller
                 $totalUploaded += $uploaded;
             }
 
-            // Sub-total row per user
             $rows[] = [
                 'User'            => $userName . ' — TOTAL',
                 'Role'            => '',
@@ -322,6 +316,80 @@ class ReportsController extends Controller
 
         return $this->streamPdf('Upload Activity Report', $headings, array_map('array_values', $rows), 'upload-activity.pdf');
     }
+
+    // ── NEW: Mode of Separation Report ────────────────────────────────────────
+    private function exportSeparationModes(Request $request, string $format)
+    {
+        $separationModeId = $request->separation_mode_id;
+
+        $headings = [
+            'Full Name',
+            'Employment Type',
+            'Location',
+            'Mode of Separation',
+            'Effectivity Date',
+        ];
+
+        $rows = File::with(['list', 'physical_location', 'separationMode'])
+            ->whereNotNull('separation_mode_id')
+            ->when($separationModeId, fn($q) => $q->where('separation_mode_id', $separationModeId))
+            ->orderBy('fullname')
+            ->get()
+            ->map(fn($file) => [
+                'Full Name'          => $file->fullname,
+                'Employment Type'    => $file->list?->name ?? 'N/A',
+                'Location'           => $file->physical_location?->name ?? 'N/A',
+                'Mode of Separation' => $file->separationMode?->name ?? 'N/A',
+                'Effectivity Date'   => $file->effectivity_date
+                    ? \Carbon\Carbon::parse($file->effectivity_date)->format('M d, Y')
+                    : 'Not Set',
+            ])->toArray();
+
+        if ($format === 'excel') {
+            return $this->streamExcel('separation-modes.xlsx', $headings, $rows);
+        }
+
+        return $this->streamPdf('Mode of Separation Report', $headings, array_map('array_values', $rows), 'separation-modes.pdf');
+    }
+
+    // ── NEW: Effectivity Date Report ──────────────────────────────────────────
+    private function exportEffectivityDates(Request $request, string $format)
+    {
+        $dateFrom         = $request->date_from;
+        $dateTo           = $request->date_to;
+        $separationModeId = $request->separation_mode_id;
+
+        $headings = [
+            'Full Name',
+            'Employment Type',
+            'Location',
+            'Mode of Separation',
+            'Effectivity Date',
+        ];
+
+        $rows = File::with(['list', 'physical_location', 'separationMode'])
+            ->whereNotNull('effectivity_date')
+            ->when($separationModeId, fn($q) => $q->where('separation_mode_id', $separationModeId))
+            ->when($dateFrom, fn($q) => $q->whereDate('effectivity_date', '>=', $dateFrom))
+            ->when($dateTo,   fn($q) => $q->whereDate('effectivity_date', '<=', $dateTo))
+            ->orderBy('effectivity_date')
+            ->get()
+            ->map(fn($file) => [
+                'Full Name'          => $file->fullname,
+                'Employment Type'    => $file->list?->name ?? 'N/A',
+                'Location'           => $file->physical_location?->name ?? 'N/A',
+                'Mode of Separation' => $file->separationMode?->name ?? 'Not Set',
+                'Effectivity Date'   => \Carbon\Carbon::parse($file->effectivity_date)->format('M d, Y'),
+            ])->toArray();
+
+        if ($format === 'excel') {
+            return $this->streamExcel('effectivity-dates.xlsx', $headings, $rows);
+        }
+
+        return $this->streamPdf('Effectivity Date Report', $headings, array_map('array_values', $rows), 'effectivity-dates.pdf');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function streamExcel(string $filename, array $headings, array $rows)
     {

@@ -6,7 +6,7 @@ import { Head } from '@inertiajs/vue3';
 import {
     FileX, FileCheck, FolderOpen, Briefcase,
     MapPin, ClipboardList, Users, FileSpreadsheet, FileText,
-    UploadCloud
+    UploadCloud, Scissors, CalendarDays
 } from 'lucide-vue-next';
 
 interface List {
@@ -24,23 +24,31 @@ interface User {
     name: string;
 }
 
+interface SeparationMode {
+    id: number;
+    name: string;
+}
+
 const props = defineProps<{
     lists: List[];
     locations: Location[];
     users: User[];
+    separationModes: SeparationMode[];
 }>();
 
 const loading = ref<string | null>(null);
 
 const filters = ref({
-    'no-record-documents':  { list_id: '' },
-    'complete-documents': { list_id: '' },
-    'folder-summary':     { list_id: '', location_id: '' },
-    'employment-types':   {},
-    'locations':          {},
-    'activity-log':       { module: '', action: '', date_from: '', date_to: '' },
-    'users':              {},
-    'upload-activity':    { user_id: '', date_from: '', date_to: '' },
+    'no-record-documents': { list_id: '' },
+    'complete-documents':  { list_id: '' },
+    'folder-summary':      { list_id: '', location_id: '' },
+    'employment-types':    {},
+    'locations':           {},
+    'activity-log':        { module: '', action: '', date_from: '', date_to: '' },
+    'users':               {},
+    'upload-activity':     { user_id: '', date_from: '', date_to: '' },
+    'separation-modes':    { separation_mode_id: '' },
+    'effectivity-dates':   { separation_mode_id: '', date_from: '', date_to: '' },
 });
 
 const reports = [
@@ -90,13 +98,31 @@ const reports = [
         iconColor: 'text-yellow-300',
     },
     {
+        key: 'separation-modes',
+        title: 'Mode of Separation',
+        description: 'Personnel grouped by their mode of separation.',
+        icon: Scissors,
+        accent: 'border-orange-400/40',
+        iconBg: 'bg-orange-400/15',
+        iconColor: 'text-orange-300',
+    },
+    {
+        key: 'effectivity-dates',
+        title: 'Effectivity Dates',
+        description: 'Personnel with effectivity dates, filterable by range.',
+        icon: CalendarDays,
+        accent: 'border-sky-400/40',
+        iconBg: 'bg-sky-400/15',
+        iconColor: 'text-sky-300',
+    },
+    {
         key: 'activity-log',
         title: 'Activity Log',
         description: 'Export system audit trails and logs.',
         icon: ClipboardList,
-        accent: 'border-orange-400/40',
-        iconBg: 'bg-orange-400/15',
-        iconColor: 'text-orange-300',
+        accent: 'border-rose-400/40',
+        iconBg: 'bg-rose-400/15',
+        iconColor: 'text-rose-300',
     },
     {
         key: 'users',
@@ -184,7 +210,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                         <!-- Filters Section -->
                         <div class="flex-1 space-y-3">
 
-                            <!-- Missing / Complete Documents -->
+                            <!-- No Record / Complete Documents -->
                             <div v-if="report.key === 'no-record-documents' || report.key === 'complete-documents'">
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
                                     Employment Type
@@ -222,6 +248,44 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                 </div>
                             </div>
 
+                            <!-- Mode of Separation -->
+                            <div v-if="report.key === 'separation-modes'">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
+                                    Mode of Separation
+                                </label>
+                                <select v-model="filters['separation-modes'].separation_mode_id" :class="glassSelect">
+                                    <option value="" class="text-black">All Modes</option>
+                                    <option v-for="mode in separationModes" :key="mode.id" :value="mode.id" class="text-black">
+                                        {{ mode.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Effectivity Dates -->
+                            <div v-if="report.key === 'effectivity-dates'" class="space-y-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
+                                        Mode of Separation
+                                    </label>
+                                    <select v-model="filters['effectivity-dates'].separation_mode_id" :class="glassSelect">
+                                        <option value="" class="text-black">All Modes</option>
+                                        <option v-for="mode in separationModes" :key="mode.id" :value="mode.id" class="text-black">
+                                            {{ mode.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">From</label>
+                                        <input v-model="filters['effectivity-dates'].date_from" type="date" :class="glassInput + ' [color-scheme:dark]'" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">To</label>
+                                        <input v-model="filters['effectivity-dates'].date_to" type="date" :class="glassInput + ' [color-scheme:dark]'" />
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Activity Log -->
                             <div v-if="report.key === 'activity-log'" class="space-y-3">
                                 <div class="grid grid-cols-2 gap-3">
@@ -231,6 +295,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                                             <option value="" class="text-black">All</option>
                                             <option value="users" class="text-black">Users</option>
                                             <option value="files" class="text-black">Folders</option>
+                                            <option value="separation-modes" class="text-black">Separation Modes</option>
                                         </select>
                                     </div>
                                     <div>
