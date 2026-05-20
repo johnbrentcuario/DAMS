@@ -62,7 +62,7 @@ const completionRate = computed(() => {
         >
             <div class="absolute inset-0 bg-black/40"></div>
 
-            <div class="relative z-10 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6">
+            <div class="relative z-10 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full">
 
                 <!-- Header -->
                 <div>
@@ -114,9 +114,9 @@ const completionRate = computed(() => {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
                     <!-- Employment Type Breakdown -->
-                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl">
-                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4">By Employment Type</p>
-                        <div class="space-y-3 sm:space-y-4">
+                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl flex flex-col">
+                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4 shrink-0">By Employment Type</p>
+                        <div class="space-y-3 sm:space-y-4 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
                             <div v-for="list in stats.listBreakdown" :key="list.id">
                                 <div class="flex justify-between text-sm mb-1">
                                     <span class="text-gray-200 truncate max-w-[140px] text-xs sm:text-sm">{{ list.name }}</span>
@@ -137,9 +137,9 @@ const completionRate = computed(() => {
                     </div>
 
                     <!-- Location Breakdown -->
-                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl">
-                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4">By Location</p>
-                        <div class="space-y-3 sm:space-y-4">
+                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl flex flex-col">
+                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4 shrink-0">By Location</p>
+                        <div class="space-y-3 sm:space-y-4 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
                             <div v-for="loc in stats.locationBreakdown" :key="loc.id">
                                 <div class="flex justify-between text-sm mb-1">
                                     <span class="text-gray-200 truncate max-w-[140px] text-xs sm:text-sm">{{ loc.name }}</span>
@@ -160,9 +160,9 @@ const completionRate = computed(() => {
                     </div>
 
                     <!-- Mode of Separation Breakdown -->
-                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl md:col-span-2 lg:col-span-1">
-                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4">By Mode of Separation</p>
-                        <div class="space-y-3 sm:space-y-4">
+                    <div class="rounded-2xl border border-white/20 bg-white/10 p-4 sm:p-5 shadow-lg backdrop-blur-xl flex flex-col md:col-span-2 lg:col-span-1">
+                        <p class="text-xs font-medium text-gray-300 uppercase tracking-wider mb-4 shrink-0">By Mode of Separation</p>
+                        <div class="space-y-3 sm:space-y-4 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
                             <div v-for="mode in stats.separationModeBreakdown" :key="mode.id">
                                 <div class="flex justify-between text-sm mb-1">
                                     <span class="text-gray-200 truncate max-w-[140px] text-xs sm:text-sm">{{ mode.name }}</span>
@@ -185,14 +185,16 @@ const completionRate = computed(() => {
                 </div>
 
                 <!-- Recently Added -->
-                <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl pb-4">
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10">
+                <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl flex flex-col">
+                    <div class="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10 shrink-0">
                         <p class="text-xs font-medium text-gray-300 uppercase tracking-wider">Recently Added</p>
                         <Link href="/files" class="text-xs text-gray-300 hover:text-white flex items-center gap-1 transition-colors">
                             View all <ArrowRight class="h-3 w-3" />
                         </Link>
                     </div>
-                    <div class="divide-y divide-white/10">
+
+                    <!-- Scroll container for entries -->
+                    <div class="divide-y divide-white/10 max-h-[380px] overflow-y-auto scrollbar-thin">
                         <div v-if="stats.recentFiles.length === 0" class="px-5 py-8 text-center text-sm text-gray-400 italic">
                             No recent activity.
                         </div>
@@ -220,3 +222,20 @@ const completionRate = computed(() => {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+/* Sleek custom dark scrollbar layout matching frosted glass layout styling rules */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+</style>
