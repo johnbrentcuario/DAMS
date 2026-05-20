@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, X, FolderOpen, Users, MapPin } from 'lucide-vue-next';
+import { Search, X, FolderOpen, Users, MapPin, Scissors } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 
 withDefaults(
@@ -25,21 +25,24 @@ const searchInput   = ref<HTMLInputElement | null>(null)
 const activeIndex   = ref(-1)
 
 const typeIcons: Record<string, any> = {
-    folder:   FolderOpen,
-    user:     Users,
-    location: MapPin,
+    folder:            FolderOpen,
+    user:              Users,
+    location:          MapPin,
+    'separation-mode': Scissors,
 }
 
 const typeColors: Record<string, string> = {
-    folder:   'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
-    user:     'text-purple-500 bg-purple-50 dark:bg-purple-900/20',
-    location: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
+    folder:            'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
+    user:              'text-purple-500 bg-purple-50 dark:bg-purple-900/20',
+    location:          'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
+    'separation-mode': 'text-orange-500 bg-orange-50 dark:bg-orange-900/20',
 }
 
 const typeLabels: Record<string, string> = {
-    folder:   'Folder',
-    user:     'User',
-    location: 'Location',
+    folder:            'Inactive 201 File',
+    user:              'User',
+    location:          'Location',
+    'separation-mode': 'Separation',
 }
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -181,7 +184,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
                                 ref="searchInput"
                                 v-model="searchQuery"
                                 type="text"
-                                placeholder="Search folders, users, locations..."
+                                placeholder="Search Inactive 201 Files, Users, Locations, and Separation Modes..."
                                 class="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
                                 @keydown="handleKeydown"
                             />
@@ -242,7 +245,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
                             <!-- Idle state -->
                             <div v-else class="px-4 py-6 text-center text-xs text-gray-400 space-y-1">
                                 <p>Type at least 2 characters to search</p>
-                                <p>Search across folders, users, and locations</p>
+                                <p>Search across Inactive 201 Files, Users, Locations, and Separation Modes</p>
                             </div>
 
                         </div>

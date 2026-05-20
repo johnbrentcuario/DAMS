@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\PhysicalLocation;
+use App\Models\SeparationMode;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -64,6 +65,22 @@ class GlobalSearchController extends Controller
                     'subtitle' => implode(', ', $loc->storage_paths ?? []),
                     'meta'     => '',
                     'url'      => '/physical-locations',
+                ];
+            });
+
+        // Search Separation Modes
+        SeparationMode::where('name', 'like', "%{$query}%")
+            ->orWhere('description', 'like', "%{$query}%")
+            ->limit(3)
+            ->get()
+            ->each(function ($mode) use (&$results) {
+                $results[] = [
+                    'type'     => 'separation-mode',
+                    'id'       => $mode->id,
+                    'title'    => $mode->name,
+                    'subtitle' => $mode->description ?? 'No description',
+                    'meta'     => $mode->files()->count() . ' record(s)',
+                    'url'      => '/separation-modes',
                 ];
             });
 
