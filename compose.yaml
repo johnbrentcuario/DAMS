@@ -50,6 +50,22 @@ services:
                 - '-p${DB_PASSWORD}'
             retries: 3
             timeout: 5s
+    pihole:
+        image: pihole/pihole:latest
+        container_name: pihole
+        ports:
+            - '53:53/tcp'
+            - '53:53/udp'
+            - '8080:80/tcp'
+        environment:
+            TZ: 'Asia/Manila'
+            WEBPASSWORD: 'admin'
+        volumes:
+            - pihole_data:/etc/pihole
+            - pihole_dnsmasq:/etc/dnsmasq.d
+        networks:
+            - sail
+        restart: unless-stopped
 networks:
     sail:
         driver: bridge
@@ -57,4 +73,8 @@ volumes:
     sail-mysql:
         driver: local
     vendor_data:
+        driver: local
+    pihole_data:
+        driver: local
+    pihole_dnsmasq:
         driver: local
