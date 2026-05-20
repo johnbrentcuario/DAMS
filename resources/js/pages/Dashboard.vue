@@ -178,7 +178,7 @@ const completionRate = computed(() => {
                                         class="h-full rounded-full transition-all duration-500"
                                         :style="{
                                             width: getPercentage(mode.files_count) + '%',
-                                            backgroundColor: '#f97316'
+                                            backgroundColor: mode.color ?? '#f97316'
                                         }"
                                     />
                                 </div>

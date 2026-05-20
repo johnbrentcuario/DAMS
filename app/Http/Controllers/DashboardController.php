@@ -44,7 +44,7 @@ class DashboardController extends Controller
                 'locationBreakdown'       => PhysicalLocation::withCount('files')->get(),
                 'separationModeBreakdown' => SeparationMode::withCount('files')
                                                 ->orderByDesc('files_count')
-                                                ->get(['id', 'name']),
+                                                ->get(['id', 'name', 'color']),
                 'recentFiles'             => File::with(['list', 'physical_location'])
                                                 ->latest()
                                                 ->take(10)
