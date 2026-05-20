@@ -35,7 +35,7 @@ import { Head, Link } from '@inertiajs/vue3'
                         </h1>
 
                         <p class="text-sm text-white/80">
-                            Digital Archive & Mapping System
+                            Digital Archives & Mapping System
                         </p>
 
                         <p class="text-xs text-emerald-300">
@@ -50,7 +50,7 @@ import { Head, Link } from '@inertiajs/vue3'
             <main class="flex flex-1 items-center px-8 py-16">
                 <div class="max-w-4xl text-white">
                     <h2 class="mb-6 text-5xl font-extrabold leading-tight">
-                        Separated Employee Digital Archive & Mapping System
+                        Separated Employee Digital Archives & Mapping System
                     </h2>
 
                     <p class="mb-8 text-lg leading-relaxed text-white/90">
@@ -326,7 +326,7 @@ import { Head, Link } from '@inertiajs/vue3'
 
             <!-- Footer -->
             <footer class="bg-black px-8 py-6 text-center text-sm text-white/60">
-                © 2026 DAMS — Digital Archive & Mapping System <br />
+                © 2026 DAMS — Digital Archives & Mapping System <br />
                 National Irrigation Administration <br />
                 All Rights Reserved.
             </footer>
