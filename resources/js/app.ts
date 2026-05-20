@@ -26,3 +26,12 @@ createInertiaApp({
 
 // This will set light / dark mode on page load...
 initializeTheme();
+
+console.log(
+    '%c 🚀 Developed by John Brent Arroyo Cuario ',
+    'background: #6366f1; color: white; font-size: 13px; font-weight: bold; padding: 4px 10px; border-radius: 4px;'
+);
+console.log(
+    '%c Digital Archives & Mapping System (DAMS)',
+    'color: #6366f1; font-size: 11px; padding: 2px 10px;'
+);

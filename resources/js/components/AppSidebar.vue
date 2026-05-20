@@ -43,7 +43,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Mode of Separation',
-        href: '/separation-modes',  // 👈 adjust to your actual route
+        href: '/separation-modes',
         icon: Scissors,
     },
 ];
@@ -88,6 +88,13 @@ const adminNavItems: NavItem[] = [
 
         <SidebarFooter>
             <NavUser />
+            <!-- Developer signature — hidden when sidebar is collapsed to icon mode -->
+            <div class="group-data-[collapsible=icon]:hidden px-3 py-1 border-t border-sidebar-border">
+                <p class="text-[5px] text-muted-foreground/60 leading-none">Developed by</p>
+                <p class="text-[6px] font-semibold text-muted-foreground/80 leading-none">John Brent Arroyo Cuario (v.1.0.0)</p>
+                <p class="text-[6px] font-semibold text-muted-foreground/80 leading-none">brentcuario01@gmail.com</p>
+                <p class="text-[6px] text-muted-foreground/50 leading-none">© {{ new Date().getFullYear() }}</p>
+            </div>
         </SidebarFooter>
     </Sidebar>
     <slot />
