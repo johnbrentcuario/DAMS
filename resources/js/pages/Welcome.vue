@@ -109,7 +109,7 @@ import { Head, Link } from '@inertiajs/vue3'
 
                             <p class="leading-relaxed text-white/80">
                                 Create and organize digital folders for
-                                separated employees records.
+                                separated employees.
                             </p>
                         </div>
 

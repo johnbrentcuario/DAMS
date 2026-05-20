@@ -57,7 +57,6 @@ function openCreate() {
     form.role = 'user';
     form.clearErrors();
     showModal.value = true;
-
 }
 
 function openEdit(user: User) {
@@ -81,7 +80,34 @@ function closeModal() {
     showPasswordConfirm.value = false;
 }
 
+// Blocks non-numeric key strokes on keypress
+function handleIdKeypress(event: KeyboardEvent) {
+    if (!/[0-9]/.test(event.key)) {
+        event.preventDefault();
+    }
+}
+
+// Restricts typed and pasted input to exactly numbers and trims to 6 digits maximum
+function handleIdInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    // Strip out all non-numeric characters if pasted
+    let value = input.value.replace(/\D/g, '');
+
+    // Slice down to a maximum length of 6
+    if (value.length > 6) {
+        value = value.slice(0, 6);
+    }
+
+    form.id_number = value;
+}
+
 function submitForm() {
+    // Client side guard to verify it's exactly 6 digits before hitting the backend endpoint
+    if (form.id_number.length !== 6) {
+        form.setError('id_number', 'The ID number must be exactly 6 digits.');
+        return;
+    }
+
     if (editingUser.value) {
         form.put(`/users/${editingUser.value.id}`, {
             onSuccess: () => closeModal(),
@@ -268,9 +294,7 @@ const roleStyles: Record<string, string> = {
             </div>
         </div>
 
-        <!-- ══════════════════════════════
-             Create / Edit Modal (Responsive)
-        ══════════════════════════════ -->
+        <!-- Create / Edit Modal -->
         <Teleport to="body">
             <Transition
                 enter-active-class="transition duration-200 ease-out"
@@ -327,13 +351,18 @@ const roleStyles: Record<string, string> = {
                             <!-- ID & Role Grid -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">ID Number</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">ID Number (6 Digits)</label>
                                     <input
-                                        v-model="form.id_number"
+                                        :value="form.id_number"
+                                        @keypress="handleIdKeypress"
+                                        @input="handleIdInput"
                                         type="text"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        maxlength="6"
                                         class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                         :class="{ 'border-red-400 ring-red-100': form.errors.id_number }"
-                                        placeholder="EMP-101"
+                                        placeholder="123456"
                                     />
                                     <p v-if="form.errors.id_number" class="mt-1 text-xs text-red-500">{{ form.errors.id_number }}</p>
                                 </div>
@@ -351,48 +380,48 @@ const roleStyles: Record<string, string> = {
 
                             <!-- Password Fields -->
                             <div>
-    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-        Password <span v-if="editingUser" class="lowercase font-normal opacity-70">(Leave blank to keep current)</span>
-    </label>
-    <div class="relative">
-        <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-            :class="{ 'border-red-400 ring-red-100': form.errors.password }"
-            placeholder="••••••••"
-        />
-        <button
-            type="button"
-            @click="showPassword = !showPassword"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-        >
-            <EyeOff v-if="showPassword" class="h-4 w-4" />
-            <Eye v-else class="h-4 w-4" />
-        </button>
-    </div>
-    <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
-</div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                                    Password <span v-if="editingUser" class="lowercase font-normal opacity-70">(Leave blank to keep current)</span>
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        v-model="form.password"
+                                        :type="showPassword ? 'text' : 'password'"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                                        :class="{ 'border-red-400 ring-red-100': form.errors.password }"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showPassword = !showPassword"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                                    >
+                                        <EyeOff v-if="showPassword" class="h-4 w-4" />
+                                        <Eye v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p v-if="form.errors.password" class="mt-1 text-xs text-red-500">{{ form.errors.password }}</p>
+                            </div>
 
-                                <div>
-    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Confirm Password</label>
-    <div class="relative">
-        <input
-            v-model="form.password_confirmation"
-            :type="showPasswordConfirm ? 'text' : 'password'"
-            class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="••••••••"
-        />
-        <button
-            type="button"
-            @click="showPasswordConfirm = !showPasswordConfirm"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-        >
-            <EyeOff v-if="showPasswordConfirm" class="h-4 w-4" />
-            <Eye v-else class="h-4 w-4" />
-        </button>
-    </div>
-</div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Confirm Password</label>
+                                <div class="relative">
+                                    <input
+                                        v-model="form.password_confirmation"
+                                        :type="showPasswordConfirm ? 'text' : 'password'"
+                                        class="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showPasswordConfirm = !showPasswordConfirm"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                                    >
+                                        <EyeOff v-if="showPasswordConfirm" class="h-4 w-4" />
+                                        <Eye v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Footer -->
