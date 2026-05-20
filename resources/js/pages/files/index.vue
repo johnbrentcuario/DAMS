@@ -29,7 +29,7 @@ import {
   FilterX, FileUp, FileText, XCircle, RotateCcw, MapPin,
   Archive, RefreshCw, AlertTriangle, FileSearch, Layers,
   FileSpreadsheet, MoveRight, X, SquareCheck, Search, MinusCircle,
-  Scissors, CalendarDays
+  Scissors, CalendarDays, SlidersHorizontal
 } from 'lucide-vue-next'
 
 /* =======================
@@ -107,6 +107,7 @@ const missingRequirement = ref(props.filters.missing_requirement || '')
 const separationModeId = ref(props.filters.separation_mode_id || '')
 const locationId = ref(props.filters.location_id || '')
 const sort = ref(props.filters.sort || 'asc')
+const showFilters = ref(false)
 
 const allPossibleRequirements = computed(() => {
   const reqs = new Set<string>()
@@ -139,6 +140,10 @@ const clearFilters = () => {
   locationId.value = ''
   sort.value = 'asc'
 }
+
+const hasActiveFilters = computed(() =>
+  !!(search.value || listId.value || missingRequirement.value || separationModeId.value || locationId.value || sort.value !== 'asc')
+)
 
 /* =======================
     Date Formatter
@@ -380,7 +385,6 @@ const processFileSelection = (file: File, requirement: string) => {
   }
   pendingUploads.value[requirement]  = file
   pendingDeletions.value             = pendingDeletions.value.filter(req => req !== requirement)
-  // If it was marked N/A, uploading a file un-marks it
   pendingNa.value = pendingNa.value.filter(r => r !== requirement)
 }
 
@@ -395,29 +399,15 @@ const removeFileLocal = (requirement: string) => {
   }
 }
 
-/* =======================
-    N/A Toggle
-    - empty   → click N/A  → na
-    - na      → click N/A  → empty  (reverts to "No Record")
-    - deleted → click N/A  → na
-
-    Special case: if the record was ORIGINALLY saved as __NA__ in the
-    database, removing the N/A mark must also queue it for deletion so
-    the backend clears the __NA__ sentinel on save.
-======================= */
 const toggleNa = (requirement: string) => {
   if (pendingNa.value.includes(requirement)) {
-    // Was added to N/A in this session → just remove from pending
     pendingNa.value = pendingNa.value.filter(r => r !== requirement)
   } else if (editingFile.value?.attachments?.[requirement] === '__NA__') {
-    // Was saved as __NA__ in the database → remove from pendingNa AND
-    // queue for deletion so the backend clears it
     pendingNa.value = pendingNa.value.filter(r => r !== requirement)
     if (!pendingDeletions.value.includes(requirement)) {
       pendingDeletions.value = [...pendingDeletions.value, requirement]
     }
   } else {
-    // Currently No Record or deleted → mark as N/A
     delete pendingUploads.value[requirement]
     pendingDeletions.value = pendingDeletions.value.filter(r => r !== requirement)
     pendingNa.value = [...pendingNa.value, requirement]
@@ -431,7 +421,6 @@ const restoreFileLocal = (requirement: string) => {
 const getStatus = (req: string) => {
   if (pendingNa.value.includes(req)) return 'na'
   if (pendingDeletions.value.includes(req)) {
-    // If the original was __NA__, reverting shows as empty (No Record), not deleted
     if (editingFile.value?.attachments?.[req] === '__NA__') return 'empty'
     return 'deleted'
   }
@@ -492,19 +481,22 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
       >
         <div class="absolute inset-0 bg-black/40"></div>
 
-        <div class="relative z-10 flex flex-col gap-6 p-6 w-full max-w-7xl mx-auto">
+        <div class="relative z-10 flex flex-col gap-4 p-4 sm:p-6 w-full max-w-7xl mx-auto">
 
           <!-- Header -->
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-3xl font-bold text-white drop-shadow-md">Separated Personnel & Employees</h1>
-              <p class="mt-1 text-sm text-gray-200">{{ files.total }} Records Found</p>
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-md truncate">
+                Separated Personnel & Employees
+              </h1>
+              <p class="mt-0.5 text-xs sm:text-sm text-gray-200">{{ files.total }} Records Found</p>
             </div>
 
             <Dialog v-model:open="isCreateDialogOpen">
               <DialogTrigger as-child>
-                <button class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95">
-                  <Plus class="h-5 w-5" /> Add Record
+                <button class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2 sm:px-4 text-xs sm:text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20 active:scale-95">
+                  <Plus class="h-4 w-4" />
+                  <span class="hidden sm:inline">Add Record</span>
                 </button>
               </DialogTrigger>
               <DialogContent class="sm:max-w-[500px]">
@@ -570,9 +562,9 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             </Dialog>
           </div>
 
-          <!-- Filters -->
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="relative flex-1 min-w-[180px]">
+          <!-- Search + Filter Toggle -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
               <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-300" />
               <input
                 v-model="search"
@@ -581,46 +573,70 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 :class="glassInput + ' pl-9 pr-4'"
               />
             </div>
-            <select v-model="listId" :class="glassSelect" style="width: 170px; flex-shrink: 0;">
-              <option value="" class="text-black">All Employment Types</option>
-              <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">{{ list.name }}</option>
-            </select>
-            <select v-model="locationId" :class="glassSelect" style="width: 160px; flex-shrink: 0;">
-              <option value="" class="text-black">All Locations</option>
-              <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id" class="text-black">{{ loc.name }}</option>
-            </select>
-            <select v-model="separationModeId" :class="glassSelect" style="width: 185px; flex-shrink: 0;">
-              <option value="" class="text-black">All Separation Modes</option>
-              <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id" class="text-black">{{ mode.name }}</option>
-            </select>
-            <select v-model="missingRequirement" :class="glassSelect" style="width: 190px; flex-shrink: 0;">
-              <option value="" class="text-black">All Documents Present</option>
-              <optgroup label="Show Records Missing:">
-                <option v-for="req in allPossibleRequirements" :key="req" :value="req" class="text-black">
-                  No Record: {{ req }}
-                </option>
-              </optgroup>
-            </select>
-            <select v-model="sort" :class="glassSelect" style="width: 130px; flex-shrink: 0;">
-              <option value="asc" class="text-black">Name (A–Z)</option>
-              <option value="desc" class="text-black">Name (Z–A)</option>
-            </select>
             <button
-              v-if="search || listId || missingRequirement || separationModeId || locationId || sort !== 'asc'"
-              @click="clearFilters"
-              class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20"
+              @click="showFilters = !showFilters"
+              class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20"
+              :class="{ 'bg-white/20': showFilters || hasActiveFilters }"
             >
-              <X class="h-4 w-4" /> Clear
+              <SlidersHorizontal class="h-4 w-4" />
+              <span class="hidden sm:inline">Filters</span>
+              <span v-if="hasActiveFilters" class="inline-flex items-center justify-center h-4 w-4 rounded-full bg-blue-500 text-[10px] font-bold text-white">!</span>
+            </button>
+            <button
+              v-if="hasActiveFilters"
+              @click="clearFilters"
+              class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition hover:bg-white/20"
+            >
+              <X class="h-4 w-4" />
+              <span class="hidden sm:inline">Clear</span>
             </button>
           </div>
+
+          <!-- Expandable Filters Panel -->
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 -translate-y-2"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-to-class="opacity-0 -translate-y-2"
+          >
+            <div
+              v-if="showFilters"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-4 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md"
+            >
+              <select v-model="listId" :class="glassSelect">
+                <option value="" class="text-black">All Employment Types</option>
+                <option v-for="list in lists" :key="list.id" :value="list.id" class="text-black">{{ list.name }}</option>
+              </select>
+              <select v-model="locationId" :class="glassSelect">
+                <option value="" class="text-black">All Locations</option>
+                <option v-for="loc in physical_locations" :key="loc.id" :value="loc.id" class="text-black">{{ loc.name }}</option>
+              </select>
+              <select v-model="separationModeId" :class="glassSelect">
+                <option value="" class="text-black">All Separation Modes</option>
+                <option v-for="mode in separation_modes" :key="mode.id" :value="mode.id" class="text-black">{{ mode.name }}</option>
+              </select>
+              <select v-model="missingRequirement" :class="glassSelect">
+                <option value="" class="text-black">All Documents Present</option>
+                <optgroup label="Show Records Missing:">
+                  <option v-for="req in allPossibleRequirements" :key="req" :value="req" class="text-black">
+                    No Record: {{ req }}
+                  </option>
+                </optgroup>
+              </select>
+              <select v-model="sort" :class="glassSelect">
+                <option value="asc" class="text-black">Name (A–Z)</option>
+                <option value="desc" class="text-black">Name (Z–A)</option>
+              </select>
+            </div>
+          </Transition>
 
           <!-- Missing filter warning -->
           <div
             v-if="missingRequirement"
             class="flex items-center gap-2 rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-2 text-sm font-medium text-yellow-200 backdrop-blur-md animate-in fade-in slide-in-from-left-2"
           >
-            <FileSearch class="h-4 w-4" />
-            Personnel Without Records: <span class="underline decoration-2">{{ missingRequirement }}</span>
+            <FileSearch class="h-4 w-4 shrink-0" />
+            <span class="truncate">Personnel Without Records: <span class="underline decoration-2">{{ missingRequirement }}</span></span>
           </div>
 
           <!-- Bulk Action Toolbar -->
@@ -638,169 +654,178 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 <SquareCheck class="h-4 w-4 text-blue-300" />
                 <span class="text-sm font-semibold text-white">{{ selectedIds.length }} selected</span>
               </div>
-              <button @click="isBulkChangeTypeOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20">
-                <Layers class="h-3.5 w-3.5" /> Change Type
+              <button @click="isBulkChangeTypeOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-white/20">
+                <Layers class="h-3.5 w-3.5" /> <span class="hidden sm:inline">Change Type</span>
               </button>
-              <button @click="isBulkMoveOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20">
-                <MoveRight class="h-3.5 w-3.5" /> Move Location
+              <button @click="isBulkMoveOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-white/20">
+                <MoveRight class="h-3.5 w-3.5" /> <span class="hidden sm:inline">Move Location</span>
               </button>
-              <button @click="bulkExport('excel')" class="inline-flex items-center gap-1.5 rounded-lg border border-green-400/30 bg-green-400/10 px-3 py-1.5 text-xs font-medium text-green-300 transition hover:bg-green-400/20">
-                <FileSpreadsheet class="h-3.5 w-3.5" /> Export Excel
+              <button @click="bulkExport('excel')" class="inline-flex items-center gap-1.5 rounded-lg border border-green-400/30 bg-green-400/10 px-2.5 py-1.5 text-xs font-medium text-green-300 transition hover:bg-green-400/20">
+                <FileSpreadsheet class="h-3.5 w-3.5" /> <span class="hidden sm:inline">Excel</span>
               </button>
-              <button @click="bulkExport('pdf')" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/30 bg-blue-400/10 px-3 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-400/20">
-                <FileText class="h-3.5 w-3.5" /> Export PDF
+              <button @click="bulkExport('pdf')" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/30 bg-blue-400/10 px-2.5 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-400/20">
+                <FileText class="h-3.5 w-3.5" /> <span class="hidden sm:inline">PDF</span>
               </button>
-              <button @click="isBulkDeleteOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-400/20">
-                <Trash2 class="h-3.5 w-3.5" /> Delete
+              <button @click="isBulkDeleteOpen = true" class="inline-flex items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-400/10 px-2.5 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-400/20">
+                <Trash2 class="h-3.5 w-3.5" /> <span class="hidden sm:inline">Delete</span>
               </button>
-              <button @click="clearSelection" class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-transparent px-3 py-1.5 text-xs font-medium text-gray-300 transition hover:bg-white/10">
-                <X class="h-3.5 w-3.5" /> Clear
+              <button @click="clearSelection" class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-transparent px-2.5 py-1.5 text-xs font-medium text-gray-300 transition hover:bg-white/10">
+                <X class="h-3.5 w-3.5" /> <span class="hidden sm:inline">Clear</span>
               </button>
             </div>
           </Transition>
 
           <!-- Table -->
           <div class="overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-white/10 bg-white/10">
-                  <th class="p-4 pl-6 w-10">
-                    <input
-                      type="checkbox"
-                      :checked="allSelected"
-                      :indeterminate="someSelected"
-                      @change="toggleSelectAll"
-                      class="rounded border-gray-300 cursor-pointer"
-                    />
-                  </th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200 w-12">No.</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200">Full Name</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200">Employment Type</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200">Location</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Mode of Separation</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Effectivity Date</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-200 hidden lg:table-cell">Remarks</th>
-                  <th class="px-4 py-3 text-center font-medium text-gray-200 w-40">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/10">
-                <tr
-                  v-for="(file, index) in files.data"
-                  :key="file.id"
-                  class="transition hover:bg-white/10"
-                  :class="{ 'bg-blue-500/10': selectedIds.includes(file.id) }"
-                >
-                  <td class="p-4 pl-6">
-                    <input
-                      type="checkbox"
-                      :checked="selectedIds.includes(file.id)"
-                      @change="toggleSelect(file.id)"
-                      class="rounded border-gray-300 cursor-pointer"
-                    />
-                  </td>
-                  <td class="px-4 py-3 font-mono text-xs text-gray-300">
-                    {{ (props.files.current_page - 1) * props.files.per_page + index + 1 }}
-                  </td>
-                  <td class="px-4 py-3 font-medium text-white">{{ file.fullname }}</td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
-                      <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-white">
-                        {{ file.list?.name }}
-                      </span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div v-if="file.physical_location" class="flex flex-col">
-                      <div class="flex items-center gap-1.5 text-xs font-bold text-white">
-                        <MapPin class="h-3 w-3 shrink-0" :style="{ color: file.physical_location.color }" />
-                        {{ file.physical_location.name }}
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-white/10 bg-white/10">
+                    <th class="p-4 pl-6 w-10">
+                      <input
+                        type="checkbox"
+                        :checked="allSelected"
+                        :indeterminate="someSelected"
+                        @change="toggleSelectAll"
+                        class="rounded border-gray-300 cursor-pointer"
+                      />
+                    </th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 w-12">No.</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200">Full Name</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 hidden sm:table-cell">Employment Type</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 hidden md:table-cell">Location</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Mode of Separation</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 hidden xl:table-cell">Effectivity Date</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-200 hidden 2xl:table-cell">Remarks</th>
+                    <th class="px-4 py-3 text-center font-medium text-gray-200">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                  <tr
+                    v-for="(file, index) in files.data"
+                    :key="file.id"
+                    class="transition hover:bg-white/10"
+                    :class="{ 'bg-blue-500/10': selectedIds.includes(file.id) }"
+                  >
+                    <td class="p-4 pl-6">
+                      <input
+                        type="checkbox"
+                        :checked="selectedIds.includes(file.id)"
+                        @change="toggleSelect(file.id)"
+                        class="rounded border-gray-300 cursor-pointer"
+                      />
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs text-gray-300">
+                      {{ (props.files.current_page - 1) * props.files.per_page + index + 1 }}
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="font-medium text-white">{{ file.fullname }}</div>
+                      <!-- Show employment type below name on small screens -->
+                      <div class="flex items-center gap-1.5 mt-0.5 sm:hidden">
+                        <div class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
+                        <span class="text-[11px] text-gray-300 truncate">{{ file.list?.name }}</span>
                       </div>
-                      <div class="text-[10px] text-gray-300 pl-4 flex items-center gap-1">
-                        <Archive class="h-2.5 w-2.5" /> {{ file.physical_path || 'Main Room' }}
+                    </td>
+                    <td class="px-4 py-3 hidden sm:table-cell">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: file.list?.color || '#94a3b8' }"></div>
+                        <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium text-white">
+                          {{ file.list?.name }}
+                        </span>
                       </div>
-                    </div>
-                    <span v-else class="text-xs text-gray-400 italic">No mapping</span>
-                  </td>
-                  <td class="px-4 py-3 hidden xl:table-cell">
-                    <div v-if="file.separation_mode" class="flex items-center gap-1.5">
-                      <Scissors class="h-3 w-3 shrink-0" :style="{ color: file.separation_mode.color ?? '#f97316' }" />
-                      <span
-                        class="inline-block rounded-md px-2 py-0.5 text-xs font-medium border"
-                        :style="{
-                          backgroundColor: (file.separation_mode.color ?? '#f97316') + '20',
-                          borderColor: (file.separation_mode.color ?? '#f97316') + '40',
-                          color: file.separation_mode.color ?? '#f97316'
-                        }"
-                      >
-                        {{ file.separation_mode.name }}
-                      </span>
-                    </div>
-                    <span v-else class="text-xs text-gray-400 italic">—</span>
-                  </td>
-                  <td class="px-4 py-3 hidden xl:table-cell">
-                    <div v-if="file.effectivity_date" class="flex items-center gap-1.5">
-                      <CalendarDays class="h-3 w-3 text-sky-300 shrink-0" />
-                      <span class="text-xs text-sky-200 font-mono">
-                        {{ formatDate(file.effectivity_date) }}
-                      </span>
-                    </div>
-                    <span v-else class="text-xs text-gray-400 italic">—</span>
-                  </td>
-                  <td class="px-4 py-3 text-gray-300 hidden lg:table-cell italic text-xs">
-                    {{ file.description || 'N/A' }}
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex justify-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <button @click="openViewDialog(file)" class="rounded-lg p-1.5 text-blue-300 transition hover:bg-white/10 hover:text-blue-200">
-                            <Eye class="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>View Record Details</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <button @click="openEditDialog(file)" class="rounded-lg p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white">
-                            <Edit2 class="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit Record & Files</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <button @click="openDeleteModal(file)" class="rounded-lg p-1.5 text-red-300 transition hover:bg-red-400/10 hover:text-red-200">
-                            <Trash2 class="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete Record</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="files.data.length === 0">
-                  <td colspan="9" class="px-4 py-10 text-center text-gray-300">
-                    No records found matching these filters.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    </td>
+                    <td class="px-4 py-3 hidden md:table-cell">
+                      <div v-if="file.physical_location" class="flex flex-col">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-white">
+                          <MapPin class="h-3 w-3 shrink-0" :style="{ color: file.physical_location.color }" />
+                          {{ file.physical_location.name }}
+                        </div>
+                        <div class="text-[10px] text-gray-300 pl-4 flex items-center gap-1">
+                          <Archive class="h-2.5 w-2.5" /> {{ file.physical_path || 'Main Room' }}
+                        </div>
+                      </div>
+                      <span v-else class="text-xs text-gray-400 italic">No mapping</span>
+                    </td>
+                    <td class="px-4 py-3 hidden xl:table-cell">
+                      <div v-if="file.separation_mode" class="flex items-center gap-1.5">
+                        <Scissors class="h-3 w-3 shrink-0" :style="{ color: file.separation_mode.color ?? '#f97316' }" />
+                        <span
+                          class="inline-block rounded-md px-2 py-0.5 text-xs font-medium border"
+                          :style="{
+                            backgroundColor: (file.separation_mode.color ?? '#f97316') + '20',
+                            borderColor: (file.separation_mode.color ?? '#f97316') + '40',
+                            color: file.separation_mode.color ?? '#f97316'
+                          }"
+                        >
+                          {{ file.separation_mode.name }}
+                        </span>
+                      </div>
+                      <span v-else class="text-xs text-gray-400 italic">—</span>
+                    </td>
+                    <td class="px-4 py-3 hidden xl:table-cell">
+                      <div v-if="file.effectivity_date" class="flex items-center gap-1.5">
+                        <CalendarDays class="h-3 w-3 text-sky-300 shrink-0" />
+                        <span class="text-xs text-sky-200 font-mono">
+                          {{ formatDate(file.effectivity_date) }}
+                        </span>
+                      </div>
+                      <span v-else class="text-xs text-gray-400 italic">—</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-300 hidden 2xl:table-cell italic text-xs">
+                      {{ file.description || 'N/A' }}
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex justify-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger as-child>
+                            <button @click="openViewDialog(file)" class="rounded-lg p-1.5 text-blue-300 transition hover:bg-white/10 hover:text-blue-200">
+                              <Eye class="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>View Record Details</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger as-child>
+                            <button @click="openEditDialog(file)" class="rounded-lg p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white">
+                              <Edit2 class="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Record & Files</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger as-child>
+                            <button @click="openDeleteModal(file)" class="rounded-lg p-1.5 text-red-300 transition hover:bg-red-400/10 hover:text-red-200">
+                              <Trash2 class="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete Record</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="files.data.length === 0">
+                    <td colspan="9" class="px-4 py-10 text-center text-gray-300">
+                      No records found matching these filters.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Pagination -->
           <div
             v-if="files.links && files.links.length > 3"
-            class="flex items-center justify-between text-sm text-gray-200"
+            class="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-200 pb-10"
           >
-            <span>Page {{ files.current_page }}</span>
-            <div class="flex gap-1">
+            <span class="text-xs">Page {{ files.current_page }}</span>
+            <div class="flex flex-wrap justify-center gap-1">
               <Link
                 v-for="link in files.links"
                 :key="link.label"
                 :href="link.url ?? '#'"
                 :class="[
-                  'rounded-lg px-3 py-1.5 transition',
+                  'rounded-lg px-3 py-1.5 transition text-xs',
                   link.active
                     ? 'bg-blue-600 text-white'
                     : 'bg-white/10 text-white hover:bg-white/20',
@@ -917,7 +942,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 <Label>Full Name</Label>
                 <input v-model="editForm.fullname" required class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none" />
               </div>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label>Employment Type</Label>
                   <select v-model="editForm.list_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none" required>
@@ -939,7 +964,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   <option v-for="path in availableEditPaths" :key="path" :value="path">{{ path }}</option>
                 </select>
               </div>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <Label>Mode of Separation</Label>
                   <select v-model="editForm.separation_mode_id" class="w-full border rounded-md px-3 py-2 text-sm bg-background focus:ring-2 focus:ring-ring outline-none">
@@ -997,7 +1022,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                   </div>
 
                   <div class="flex items-center gap-1">
-                    <!-- View existing file -->
                     <Tooltip v-if="getStatus(req) === 'exists'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" as-child class="h-8 w-8 text-blue-600">
@@ -1006,8 +1030,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Open Document</TooltipContent>
                     </Tooltip>
-
-                    <!-- Remove existing or pending file -->
                     <Tooltip v-if="getStatus(req) === 'exists' || getStatus(req) === 'new'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="removeFileLocal(req)" class="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -1016,8 +1038,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Remove attachment</TooltipContent>
                     </Tooltip>
-
-                    <!-- Restore deleted file -->
                     <Tooltip v-if="getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button variant="ghost" size="icon" @click="restoreFileLocal(req)" class="h-8 w-8 text-primary">
@@ -1026,8 +1046,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                       </TooltipTrigger>
                       <TooltipContent>Restore original file</TooltipContent>
                     </Tooltip>
-
-                    <!-- N/A toggle — visible for empty, na, deleted states -->
                     <Tooltip v-if="getStatus(req) === 'empty' || getStatus(req) === 'na' || getStatus(req) === 'deleted'">
                       <TooltipTrigger as-child>
                         <Button
@@ -1048,8 +1066,6 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                         {{ getStatus(req) === 'na' ? 'Remove N/A — revert to No Record' : 'Mark as N/A' }}
                       </TooltipContent>
                     </Tooltip>
-
-                    <!-- Upload / Replace file -->
                     <div class="relative" v-if="getStatus(req) !== 'deleted' && getStatus(req) !== 'na'">
                       <input :id="`edit-input-${req}`" type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleFileUploadLocal($event, req)" />
                       <Tooltip>
@@ -1131,7 +1147,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             <DialogDescription>Full record view and document status</DialogDescription>
           </DialogHeader>
           <div v-if="viewingFile" class="space-y-6 pt-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Full Name</Label>
                 <p class="font-semibold text-lg">{{ viewingFile.fullname }}</p>
@@ -1144,7 +1160,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                 </div>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
                 <div v-if="viewingFile.physical_location" class="flex items-center gap-2 p-3 rounded-md border bg-slate-50/50">
