@@ -758,7 +758,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                             <Eye class="h-4 w-4" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent>View Folder Details</TooltipContent>
+                        <TooltipContent>View Record Details</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger as-child>
@@ -774,7 +774,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
                             <Trash2 class="h-4 w-4" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent>Delete Folder</TooltipContent>
+                        <TooltipContent>Delete Record</TooltipContent>
                       </Tooltip>
                     </div>
                   </td>
@@ -825,10 +825,10 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
               <Trash2 class="h-5 w-5 text-destructive" />
-              Delete {{ selectedIds.length }} Folder(s)?
+              Delete {{ selectedIds.length }} Record(s)?
             </DialogTitle>
             <DialogDescription class="py-3">
-              This will permanently delete <span class="font-bold text-slate-900 dark:text-white">{{ selectedIds.length }}</span> folder(s) and all their attachments. This action cannot be undone.
+              This will permanently delete <span class="font-bold text-slate-900 dark:text-white">{{ selectedIds.length }}</span> record(s) and all their attachments. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div class="flex justify-end gap-3 mt-2">
@@ -846,9 +846,9 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
               <MoveRight class="h-5 w-5" />
-              Move {{ selectedIds.length }} Folder(s)
+              Move {{ selectedIds.length }} Record(s)
             </DialogTitle>
-            <DialogDescription>Select a new physical location for the selected folders.</DialogDescription>
+            <DialogDescription>Select a new physical location for the selected records.</DialogDescription>
           </DialogHeader>
           <div class="space-y-4 pt-4">
             <div class="space-y-2">
@@ -870,7 +870,7 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
             <Button variant="outline" @click="isBulkMoveOpen = false">Cancel</Button>
             <Button @click="bulkMove" :disabled="bulkMoveForm.processing">
               <Loader2 v-if="bulkMoveForm.processing" class="h-4 w-4 mr-2 animate-spin" />
-              Move Folders
+              Move Records
             </Button>
           </div>
         </DialogContent>
@@ -882,9 +882,9 @@ const glassInput  = "w-full rounded-xl border border-white/20 bg-white/10 px-3 p
           <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
               <Layers class="h-5 w-5" />
-              Change Type for {{ selectedIds.length }} Folder(s)
+              Change Type for {{ selectedIds.length }} Record(s)
             </DialogTitle>
-            <DialogDescription>Select a new employment type for the selected folders.</DialogDescription>
+            <DialogDescription>Select a new employment type for the selected records.</DialogDescription>
           </DialogHeader>
           <div class="space-y-4 pt-4">
             <div class="space-y-2">

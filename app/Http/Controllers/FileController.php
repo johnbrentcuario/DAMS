@@ -100,6 +100,7 @@ class FileController extends Controller
         $separationMode = $validated['separation_mode_id']
             ? SeparationMode::find($validated['separation_mode_id'])
             : null;
+
         ActivityLogger::log(
             'created',
             'files',
@@ -136,7 +137,9 @@ class FileController extends Controller
             'location'         => $file->physical_location?->name ?? 'None',
             'path'             => $file->physical_path ?? 'empty',
             'separation_mode'  => $file->separationMode?->name ?? 'None',
-            'effectivity_date' => $file->effectivity_date ?? 'None',
+            'effectivity_date' => $file->effectivity_date
+                ? \Carbon\Carbon::parse($file->effectivity_date)->format('Y-m-d')
+                : 'None',
         ];
 
         $attachments   = $file->attachments ?? [];
@@ -189,7 +192,9 @@ class FileController extends Controller
             'location'         => $newLocation?->name ?? 'None',
             'path'             => $validated['physical_path'] ?? 'empty',
             'separation_mode'  => $newSeparationMode?->name ?? 'None',
-            'effectivity_date' => $validated['effectivity_date'] ?? 'None',
+            'effectivity_date' => $validated['effectivity_date']
+                ? \Carbon\Carbon::parse($validated['effectivity_date'])->format('Y-m-d')
+                : 'None',
         ];
 
         $file->update([

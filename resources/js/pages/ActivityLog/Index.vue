@@ -2,9 +2,12 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Search, X, Clock, Monitor, User, Tag, FileText, Scissors, CalendarDays } from 'lucide-vue-next';
+import {
+    Search, X, Clock, Monitor, User, Tag, FileText,
+    Scissors, CalendarDays, LayoutGrid, Folder, List,
+    MapPin, Users, ClipboardList, FileBarChart2
+} from 'lucide-vue-next';
 
 interface ActivityLog {
     id: number;
@@ -107,12 +110,24 @@ const actionStyles: Record<string, string> = {
 };
 
 const moduleLabels: Record<string, string> = {
-    users: 'Users',
-    files: 'Folders',
+    users: 'User Management',
+    files: 'Inactive 201 Files',
     'employment-types': 'Employment Types',
     locations: 'Locations',
-    'separation-modes': 'Separation Modes',
+    'separation-modes': 'Mode of Separation',
     settings: 'Settings',
+    reports: 'Reports',
+    'activity-log': 'Activity Log',
+};
+
+const moduleIcons: Record<string, any> = {
+    users: Users,
+    files: Folder,
+    'employment-types': List,
+    locations: MapPin,
+    'separation-modes': Scissors,
+    reports: FileBarChart2,
+    'activity-log': ClipboardList,
 };
 
 const roleStyles: Record<string, string> = {
@@ -129,13 +144,6 @@ function partLabelColor(part: string): string {
     if (key.includes('separation')) return 'text-orange-300';
     if (key.includes('effectivity') || key.includes('date')) return 'text-sky-300';
     return 'text-blue-400';
-}
-
-function partLabelIcon(part: string): 'scissors' | 'calendar' | null {
-    const key = part.split(': ')[0]?.toLowerCase() ?? '';
-    if (key.includes('separation')) return 'scissors';
-    if (key.includes('effectivity') || key.includes('date')) return 'calendar';
-    return null;
 }
 
 const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-lg backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:outline-none";
@@ -179,11 +187,11 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                         <select v-model="module" :class="[glassInput, 'flex-1 sm:flex-none']" @change="applyFilters">
                             <option value="" class="text-black">All Modules</option>
-                            <option value="users" class="text-black">Users</option>
-                            <option value="files" class="text-black">Folders</option>
+                            <option value="users" class="text-black">User Management</option>
+                            <option value="files" class="text-black">Inactive 201 Files</option>
                             <option value="employment-types" class="text-black">Employment Types</option>
                             <option value="locations" class="text-black">Locations</option>
-                            <option value="separation-modes" class="text-black">Separation Modes</option>
+                            <option value="separation-modes" class="text-black">Mode of Separation</option>
                             <option value="settings" class="text-black">Settings</option>
                         </select>
 
@@ -245,7 +253,11 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-1.5">
-                                            <Scissors v-if="log.module === 'separation-modes'" class="h-3 w-3 text-orange-300 shrink-0" />
+                                            <component
+                                                :is="moduleIcons[log.module]"
+                                                v-if="moduleIcons[log.module]"
+                                                class="h-3.5 w-3.5 shrink-0 text-gray-300"
+                                            />
                                             <span class="inline-block rounded-md bg-white/10 px-2 py-0.5 text-xs text-white">
                                                 {{ moduleLabels[log.module] ?? log.module }}
                                             </span>
@@ -259,7 +271,10 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                             <div v-if="descriptionParts(log.description).length > 1" class="text-[10px] text-blue-300">
                                                 +{{ descriptionParts(log.description).length - 1 }} more details
                                             </div>
-                                            <div v-if="log.description.toLowerCase().includes('separation')" class="flex items-center gap-0.5 text-[10px] text-orange-300">
+                                            <div
+                                                v-if="log.description.toLowerCase().includes('separation') && log.module === 'files'"
+                                                class="flex items-center gap-0.5 text-[10px] text-orange-300"
+                                            >
                                                 <Scissors class="h-2.5 w-2.5" /> Separation
                                             </div>
                                             <div v-if="log.description.toLowerCase().includes('effectivity')" class="flex items-center gap-0.5 text-[10px] text-sky-300">
@@ -331,7 +346,11 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                 {{ selectedLog.action }}
                             </span>
                             <span class="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
-                                <Scissors v-if="selectedLog.module === 'separation-modes'" class="h-3 w-3 text-orange-300" />
+                                <component
+                                    :is="moduleIcons[selectedLog.module]"
+                                    v-if="moduleIcons[selectedLog.module]"
+                                    class="h-3.5 w-3.5 shrink-0 text-gray-300"
+                                />
                                 {{ moduleLabels[selectedLog.module] ?? selectedLog.module }}
                             </span>
                         </div>
@@ -362,9 +381,13 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                         <!-- Detail parts -->
                                         <div v-else class="mt-1 rounded-lg border border-white/5 bg-black/20 p-2">
                                             <template v-if="part.includes(': ')">
-                                                <!-- Separation label -->
-                                                <div v-if="part.split(': ')[0].toLowerCase().includes('separation')" class="flex items-center gap-1.5 mb-1">
+                                                <!-- Separation label for files module (with scissors) -->
+                                                <div v-if="part.split(': ')[0].toLowerCase().includes('separation') && selectedLog.module === 'files'" class="flex items-center gap-1.5 mb-1">
                                                     <Scissors class="h-3 w-3 text-orange-300 shrink-0" />
+                                                    <span class="text-[10px] text-orange-300 uppercase font-bold">{{ part.split(': ')[0] }}</span>
+                                                </div>
+                                                <!-- Separation label for separation-modes module (no scissors) -->
+                                                <div v-else-if="part.split(': ')[0].toLowerCase().includes('separation') && selectedLog.module === 'separation-modes'" class="flex items-center gap-1.5 mb-1">
                                                     <span class="text-[10px] text-orange-300 uppercase font-bold">{{ part.split(': ')[0] }}</span>
                                                 </div>
                                                 <!-- Effectivity label -->
