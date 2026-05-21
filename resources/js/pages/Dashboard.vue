@@ -89,7 +89,7 @@ const completionRate = computed(() => {
                 <!-- Stats Row 2 — Document Completion -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div class="rounded-2xl border border-red-400/30 bg-red-400/10 p-3 sm:p-4 shadow-lg backdrop-blur-xl">
-                        <p class="text-xs text-gray-300">Missing Documents</p>
+                        <p class="text-xs text-gray-300">No Records</p>
                         <p class="text-xl sm:text-2xl font-semibold text-red-300 mt-1">{{ stats.missingDocuments }}</p>
                         <p class="text-xs text-gray-400 mt-0.5">folders incomplete</p>
                     </div>

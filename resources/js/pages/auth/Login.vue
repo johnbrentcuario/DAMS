@@ -56,6 +56,10 @@ const showPassword = ref(false);
                         :tabindex="1"
                         autocomplete="username"
                         placeholder="ID number"
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        inputmode="numeric"
+                        @keypress="(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault() }"
                     />
                     <InputError :message="errors.email" />
                 </div>

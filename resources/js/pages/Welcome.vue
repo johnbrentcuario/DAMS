@@ -325,11 +325,37 @@ import { Head, Link } from '@inertiajs/vue3'
             </section>
 
             <!-- Footer -->
-            <footer class="bg-black px-8 py-6 text-center text-sm text-white/60">
-                © 2026 DAMS — Digital Archives & Mapping System <br />
-                National Irrigation Administration <br />
-                All Rights Reserved.
-            </footer>
+            <footer class="bg-zinc-950 px-6 py-6 text-xs text-zinc-400 border-t border-zinc-900">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+
+        <!-- Left Side: System & Agency -->
+        <div class="space-y-1">
+            <p class="font-medium text-zinc-200 text-sm">
+                © 2026 DAMS — Digital Archives & Mapping System
+            </p>
+            <p class="text-zinc-400 font-medium">
+                NIA - Pangasinan IMO
+            </p>
+        </div>
+
+        <!-- Right Side: Developer (Clickable Link) -->
+<div class="md:text-right border-t border-zinc-900 pt-4 md:pt-0 md:border-none w-full md:w-auto">
+    <p class="text-zinc-500">
+        Developed by
+        <a href="https://www.facebook.com/john.brent.cuario/"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="text-zinc-300 font-medium hover:text-blue-400 hover:underline decoration-blue-400/40 underline-offset-4 transition-all duration-200">
+            John Brent Arroyo Cuario
+        </a>
+    </p>
+    <p class="text-[11px] text-zinc-600 uppercase tracking-widest mt-0.5">
+        All Rights Reserved.
+    </p>
+</div>
+
+    </div>
+</footer>
 
         </div>
     </div>

@@ -24,7 +24,7 @@ export default defineConfig({
         host: '0.0.0.0',
         port: 5173,
         hmr: {
-            host: '192.168.100.42', // 👈 replace with your actual PC 1 IP
+            host: '192.168.1.55', // 👈 replace with your actual PC 1 IP
         },
     },
 });
