@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Request;
 
 class ActivityLogger
 {
@@ -19,7 +18,6 @@ class ActivityLogger
             'action'      => $action,
             'module'      => $module,
             'description' => $description,
-            'ip_address'  => Request::ip(),
         ]);
     }
 

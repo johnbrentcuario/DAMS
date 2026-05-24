@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    Search, X, Clock, Monitor, User, Tag, FileText,
+    Search, X, Clock, User, Tag, FileText,
     Scissors, CalendarDays, LayoutGrid, Folder, List,
     MapPin, Users, ClipboardList, FileBarChart2
 } from 'lucide-vue-next';
@@ -17,7 +17,6 @@ interface ActivityLog {
     action: 'created' | 'updated' | 'deleted';
     module: string;
     description: string;
-    ip_address: string | null;
     created_at: string;
 }
 
@@ -223,13 +222,12 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                     <th class="whitespace-nowrap px-4 py-3 font-medium text-gray-200">Action</th>
                                     <th class="whitespace-nowrap px-4 py-3 font-medium text-gray-200">Module</th>
                                     <th class="px-4 py-3 font-medium text-gray-200 min-w-[200px]">Description</th>
-                                    <th class="whitespace-nowrap px-4 py-3 font-medium text-gray-200">IP Address</th>
                                     <th class="whitespace-nowrap px-4 py-3 font-medium text-gray-200">Date</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/10">
                                 <tr v-if="logs.data.length === 0">
-                                    <td colspan="6" class="px-4 py-10 text-center text-gray-300">
+                                    <td colspan="5" class="px-4 py-10 text-center text-gray-300">
                                         No activity logs found.
                                     </td>
                                 </tr>
@@ -282,7 +280,6 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 font-mono text-[11px] text-gray-300">{{ log.ip_address ?? '—' }}</td>
                                     <td class="px-4 py-3 text-xs whitespace-nowrap text-gray-300">{{ formatDate(log.created_at) }}</td>
                                 </tr>
                             </tbody>
@@ -412,16 +409,9 @@ const glassInput = "rounded-xl border border-white/20 bg-white/10 px-3 py-2 text
                                 <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                                     <Tag class="h-3.5 w-3.5" /> Metadata
                                 </div>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-gray-400 flex items-center gap-1.5"><Monitor class="h-3 w-3" /> IP Address</span>
-                                        <span class="font-mono text-white">{{ selectedLog.ip_address ?? '—' }}</span>
-                                    </div>
-                                    <div class="border-t border-white/5"></div>
-                                    <div class="flex flex-col gap-1 text-xs">
-                                        <span class="text-gray-400 flex items-center gap-1.5"><Clock class="h-3 w-3" /> Timestamp</span>
-                                        <span class="text-white">{{ formatDateFull(selectedLog.created_at) }}</span>
-                                    </div>
+                                <div class="flex flex-col gap-1 text-xs">
+                                    <span class="text-gray-400 flex items-center gap-1.5"><Clock class="h-3 w-3" /> Timestamp</span>
+                                    <span class="text-white">{{ formatDateFull(selectedLog.created_at) }}</span>
                                 </div>
                             </div>
                         </div>

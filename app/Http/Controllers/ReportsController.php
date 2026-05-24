@@ -167,7 +167,7 @@ class ReportsController extends Controller
 
     private function exportActivityLog(Request $request, string $format)
     {
-        $headings = ['User', 'Role', 'Action', 'Module', 'Description', 'IP Address', 'Date & Time'];
+        $headings = ['User', 'Role', 'Action', 'Module', 'Description', 'Date & Time'];
 
         $rows = ActivityLog::query()
             ->when($request->module,    fn($q) => $q->where('module', $request->module))
@@ -182,7 +182,6 @@ class ReportsController extends Controller
                 'Action'      => ucfirst($log->action),
                 'Module'      => $log->module,
                 'Description' => $log->description,
-                'IP Address'  => $log->ip_address ?? 'N/A',
                 'Date & Time' => $log->created_at->format('M d, Y h:i A'),
             ])->toArray();
 
@@ -317,7 +316,6 @@ class ReportsController extends Controller
         return $this->streamPdf('Upload Activity Report', $headings, array_map('array_values', $rows), 'upload-activity.pdf');
     }
 
-    // ── NEW: Mode of Separation Report ────────────────────────────────────────
     private function exportSeparationModes(Request $request, string $format)
     {
         $separationModeId = $request->separation_mode_id;
@@ -352,7 +350,6 @@ class ReportsController extends Controller
         return $this->streamPdf('Mode of Separation Report', $headings, array_map('array_values', $rows), 'separation-modes.pdf');
     }
 
-    // ── NEW: Effectivity Date Report ──────────────────────────────────────────
     private function exportEffectivityDates(Request $request, string $format)
     {
         $dateFrom         = $request->date_from;
