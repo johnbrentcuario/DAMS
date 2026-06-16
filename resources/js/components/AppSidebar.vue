@@ -87,15 +87,21 @@ const adminNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavUser />
-            <!-- Developer signature — hidden when sidebar is collapsed to icon mode -->
-            <div class="group-data-[collapsible=icon]:hidden px-3 py-1 border-t border-sidebar-border">
-                <p class="text-[8px] text-muted-foreground/60 leading-none">Developed by:</p>
-                <p class="text-[9px] font-semibold text-muted-foreground/80 leading-none">John Brent Arroyo Cuario (v.1.0.0)</p>
-                <p class="text-[9px] font-semibold text-muted-foreground/80 leading-none">brentcuario01@gmail.com</p>
-                <p class="text-[9px] text-muted-foreground/50 leading-none">© {{ new Date().getFullYear() }}</p>
-            </div>
-        </SidebarFooter>
+    <NavUser />
+    <!-- Developer signature — hidden when sidebar is collapsed to icon mode -->
+    <div class="group-data-[collapsible=icon]:hidden px-3 py-0.5 border-t border-sidebar-border text-[9px] text-muted-foreground/70 tracking-tight">
+        <p>Developed by:
+            <a href="https://www.facebook.com/john.brent.cuario/"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="font-semibold hover:text-blue-400 hover:underline decoration-blue-400/40 underline-offset-2 transition-all duration-200">
+                John Brent Arroyo Cuario
+            </a>
+        </p>
+        <p>brentcuario01@gmail.com</p>
+        <p>© {{ new Date().getFullYear() }}</p>
+    </div>
+</SidebarFooter>
     </Sidebar>
     <slot />
 </template>
